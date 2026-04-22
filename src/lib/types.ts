@@ -2,8 +2,6 @@ export type SentimentState = "EUPHORIE" | "CALME" | "NEUTRE" | "STRESS" | "PANIQ
 
 export interface IndicatorReading {
   value: number | null;
-  previous: number | null;
-  delta: number | null;
   asOf: string | null; // ISO date
   source: string;
   error?: string;

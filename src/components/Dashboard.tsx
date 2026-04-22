@@ -242,7 +242,6 @@ export default function Dashboard() {
             name="VIX"
             src={vix?.source ?? "^VIX · CBOE"}
             value={vix?.value ?? null}
-            delta={vix?.delta ?? null}
             format={(v) => v.toFixed(2)}
             loading={refreshing && !payload}
             error={vix?.error}
@@ -252,7 +251,6 @@ export default function Dashboard() {
             src={oas?.source ?? "BAMLH0A0HYM2 · FRED"}
             value={oas?.value ?? null}
             unit="%"
-            delta={oas?.delta ?? null}
             format={(v) => v.toFixed(2)}
             loading={refreshing && !payload}
             error={oas?.error}
@@ -261,7 +259,6 @@ export default function Dashboard() {
             name="Fear & Greed"
             src={fg?.source ?? "CNN · 0–100"}
             value={fg?.value ?? null}
-            delta={fg?.delta ?? null}
             format={(v) => v.toFixed(0)}
             loading={refreshing && !payload}
             error={fg?.error}
