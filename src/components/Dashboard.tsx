@@ -115,11 +115,6 @@ export default function Dashboard() {
   const finalLabel = conv.state ? STATE_LABELS[conv.state] : "Indéterminé";
   const titleIsLong = finalLabel.length > 8;
 
-  const today = new Date();
-  const todayLabel = `${String(today.getDate()).padStart(2, "0")}.${String(
-    today.getMonth() + 1
-  ).padStart(2, "0")}.${today.getFullYear()}`;
-
   // Build a single error banner summarising individual reading failures.
   const errors = [
     vix?.error ? `VIX: ${vix.error}` : null,
@@ -206,9 +201,6 @@ export default function Dashboard() {
 
         {/* Header */}
         <div className="header">
-          <div>
-            <div className="eyebrow">{todayLabel}</div>
-          </div>
           <div className="refresh-block">
             <div className="timestamp">
               <span className="pulse" />
@@ -265,10 +257,6 @@ export default function Dashboard() {
           />
         </div>
 
-        <div className="foot">
-          <span>yfinance · FRED · CNN</span>
-          <span>{theme.toUpperCase()}</span>
-        </div>
       </div>
 
       <SettingsModal
