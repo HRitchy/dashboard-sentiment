@@ -432,7 +432,7 @@ export default function SettingsModal({
             Réinitialiser par défaut
           </button>
           <button className="btn-primary" onClick={onClose}>
-            Terminé
+            Enregistrer
           </button>
         </div>
       </div>
