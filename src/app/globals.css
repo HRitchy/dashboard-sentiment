@@ -210,58 +210,6 @@ body {
 }
 .ind-delta .arrow { display: inline-block; width: 8px; text-align: center; }
 
-.ind-state {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-top: 18px;
-  border-top: 1px solid var(--line);
-}
-.ind-state-label {
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--ink-3);
-}
-.ind-state-value {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-/* state glyph: monochrome symbolic shape */
-.glyph {
-  width: 12px; height: 12px;
-  position: relative;
-  display: inline-block;
-  flex-shrink: 0;
-}
-.glyph.g-euphorie { border: 1.5px solid var(--ink); border-radius: 50%; }
-.glyph.g-calme { border: 1.5px solid var(--ink); background: linear-gradient(90deg, transparent 50%, var(--ink) 50%); }
-.glyph.g-stress {
-  background-image:
-    linear-gradient(45deg, var(--ink) 25%, transparent 25%, transparent 50%, var(--ink) 50%, var(--ink) 75%, transparent 75%);
-  background-size: 4px 4px;
-  border: 1.5px solid var(--ink);
-}
-.glyph.g-panique { background: var(--ink); }
-.glyph.g-neutre {
-  border: 1.5px solid var(--ink-2);
-  border-radius: 50%;
-}
-.glyph.g-neutre::after {
-  content: '';
-  position: absolute;
-  inset: 3px;
-  border-radius: 50%;
-  background: var(--ink-2);
-}
-
 /* threshold ticks */
 .ticks {
   display: flex;
