@@ -1,0 +1,20 @@
+# Force Node 22 + npm 10 when Dokploy falls back to Nixpacks instead of using
+# the Dockerfile. Next.js 16 requires Node >= 20.9.
+[phases.setup]
+nixPkgs = ["nodejs_22", "npm-10_x"]
+
+[phases.install]
+cmds = ["npm ci"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+# Use next start — works alongside `output: "standalone"` and doesn't require
+# the extra static-asset copying that the standalone server.js needs.
+cmd = "npm run start"
+
+[variables]
+NODE_ENV = "production"
+PORT = "3000"
+HOSTNAME = "0.0.0.0"
