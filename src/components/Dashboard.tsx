@@ -243,7 +243,6 @@ export default function Dashboard() {
             src={vix?.source ?? "^VIX · CBOE"}
             value={vix?.value ?? null}
             delta={vix?.delta ?? null}
-            state={vixState}
             format={(v) => v.toFixed(2)}
             loading={refreshing && !payload}
             error={vix?.error}
@@ -254,7 +253,6 @@ export default function Dashboard() {
             value={oas?.value ?? null}
             unit="%"
             delta={oas?.delta ?? null}
-            state={oasState}
             format={(v) => v.toFixed(2)}
             loading={refreshing && !payload}
             error={oas?.error}
@@ -264,7 +262,6 @@ export default function Dashboard() {
             src={fg?.source ?? "CNN · 0–100"}
             value={fg?.value ?? null}
             delta={fg?.delta ?? null}
-            state={fgState}
             format={(v) => v.toFixed(0)}
             loading={refreshing && !payload}
             error={fg?.error}

@@ -60,11 +60,3 @@ export const STATE_LABELS: Record<SentimentState, string> = {
   STRESS: "Stress",
   PANIQUE: "Panique",
 };
-
-export const STATE_GLYPHS: Record<SentimentState, string> = {
-  EUPHORIE: "g-euphorie",
-  CALME: "g-calme",
-  NEUTRE: "g-neutre",
-  STRESS: "g-stress",
-  PANIQUE: "g-panique",
-};
