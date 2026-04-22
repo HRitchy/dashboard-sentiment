@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 // FRED — ICE BofA US High Yield Index Option-Adjusted Spread (daily).
-// Fetch a bit more than 2 points so we can skip FRED's "." placeholder values.
+// Fetch a bit more than 1 point so we can skip FRED's "." placeholder values.
 const FRED_URL =
   "https://api.stlouisfed.org/fred/series/observations" +
   "?series_id=BAMLH0A0HYM2" +
@@ -30,14 +30,9 @@ export async function GET(): Promise<Response> {
     if (clean.length === 0) throw new Error("FRED: no valid observations");
 
     const last = clean[0];
-    const previous = clean[1];
-    const delta =
-      previous != null ? +(last.value - previous.value).toFixed(2) : null;
 
     const payload: IndicatorReading = {
       value: last.value,
-      previous: previous?.value ?? null,
-      delta,
       asOf: new Date(last.date + "T00:00:00Z").toISOString(),
       source: "FRED · BAMLH0A0HYM2",
     };
@@ -47,8 +42,6 @@ export async function GET(): Promise<Response> {
     const msg = err instanceof Error ? err.message : String(err);
     const payload: IndicatorReading = {
       value: null,
-      previous: null,
-      delta: null,
       asOf: null,
       source: "FRED · BAMLH0A0HYM2",
       error: msg,

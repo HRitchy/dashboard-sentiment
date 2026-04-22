@@ -3,8 +3,6 @@ import type { IndicatorReading } from "@/lib/types";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-// Yahoo Finance v8 chart endpoint — returns the last close for ^VIX.
-// We request the last 5 daily bars to easily derive the previous close & delta.
 const YF_URL =
   "https://query1.finance.yahoo.com/v8/finance/chart/%5EVIX?interval=1d&range=5d";
 
@@ -47,9 +45,6 @@ export async function GET(): Promise<Response> {
     const live = result.meta?.regularMarketPrice;
     const last =
       typeof live === "number" ? live : (closes[closes.length - 1] ?? null);
-    const previous = closes[closes.length - 2] ?? null;
-    const delta =
-      last != null && previous != null ? +(last - previous).toFixed(2) : null;
 
     const asOf =
       timestamps.length > 0
@@ -58,8 +53,6 @@ export async function GET(): Promise<Response> {
 
     const payload: IndicatorReading = {
       value: last,
-      previous,
-      delta,
       asOf,
       source: "yfinance · ^VIX",
     };
@@ -69,8 +62,6 @@ export async function GET(): Promise<Response> {
     const msg = err instanceof Error ? err.message : String(err);
     const payload: IndicatorReading = {
       value: null,
-      previous: null,
-      delta: null,
       asOf: null,
       source: "yfinance · ^VIX",
       error: msg,

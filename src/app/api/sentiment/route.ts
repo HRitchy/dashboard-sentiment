@@ -7,8 +7,6 @@ export const revalidate = 0;
 function emptyReading(source: string, error: string): IndicatorReading {
   return {
     value: null,
-    previous: null,
-    delta: null,
     asOf: null,
     source,
     error,

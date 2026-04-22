@@ -42,7 +42,7 @@ body {
   font-feature-settings: 'ss01';
 }
 .mono, .thr-src, .modal-eyebrow, .thr-field input, .thr-unit,
-.timestamp, .ind-src, .ind-value, .ind-delta, .tick-labels,
+.timestamp, .ind-src, .ind-value, .tick-labels,
 .thr-preview-labels, .foot {
   font-family: var(--font-mono), ui-monospace, monospace;
   font-feature-settings: 'zero';
@@ -201,15 +201,6 @@ body {
   color: var(--ink-3);
   font-weight: 400;
 }
-.ind-delta {
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 11.5px;
-  color: var(--ink-2);
-  margin-bottom: 30px;
-  min-height: 14px;
-}
-.ind-delta .arrow { display: inline-block; width: 8px; text-align: center; }
-
 /* threshold ticks */
 .ticks {
   display: flex;
