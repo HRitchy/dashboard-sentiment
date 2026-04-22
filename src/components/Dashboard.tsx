@@ -11,7 +11,9 @@ import {
   classifyHyOas,
   classifyVix,
   convergence,
+  SIGNAL_LABELS,
   STATE_LABELS,
+  STATE_SIGNALS,
 } from "@/lib/classify";
 import Indicator from "./Indicator";
 import SettingsModal from "./SettingsModal";
@@ -114,6 +116,7 @@ export default function Dashboard() {
   const conv = convergence([vixState, oasState, fgState]);
   const finalLabel = conv.state ? STATE_LABELS[conv.state] : "Indéterminé";
   const titleIsLong = finalLabel.length > 8;
+  const signal = conv.state ? STATE_SIGNALS[conv.state] : null;
 
   // Build a single error banner summarising individual reading failures.
   const errors = [
@@ -195,6 +198,14 @@ export default function Dashboard() {
               >
                 {conv.state ? finalLabel : <em>Indéterminé</em>}
               </h2>
+              {signal && (
+                <div className={`verdict-signal sig-${signal.toLowerCase()}`}>
+                  <span className="sig-arrow" aria-hidden>
+                    {signal === "ACHETER" ? "↗" : "↘"}
+                  </span>
+                  <span className="sig-label">{SIGNAL_LABELS[signal]}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -245,6 +245,27 @@ body {
   font-style: italic;
   font-weight: 400;
 }
+.verdict-signal {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px 8px 12px;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 28px;
+}
+.verdict-signal .sig-arrow {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 500;
+}
+.verdict-signal.sig-acheter { color: var(--c-euphorie); }
+.verdict-signal.sig-vendre  { color: var(--c-panique); }
 /* ============ SETTINGS MODAL ============ */
 .modal-overlay {
   position: fixed;
