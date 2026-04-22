@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   DEFAULT_THRESHOLDS,
   type SentimentPayload,
@@ -115,62 +115,6 @@ export default function Dashboard() {
   const finalLabel = conv.state ? STATE_LABELS[conv.state] : "Indéterminé";
   const titleIsLong = finalLabel.length > 8;
 
-  const rows = useMemo(
-    () => [
-      { name: "VIX", state: vixState },
-      { name: "HY OAS", state: oasState },
-      { name: "F&G", state: fgState },
-    ],
-    [vixState, oasState, fgState]
-  );
-  const convergers = rows
-    .filter((r) => r.state === conv.state)
-    .map((r) => r.name);
-
-  let reason: React.ReactNode;
-  if (conv.state) {
-    reason = (
-      <>
-        <strong>{convergers.join(" · ")}</strong> convergent sur{" "}
-        <strong>{finalLabel.toLowerCase()}</strong>. Les autres indicateurs ne
-        contredisent pas ce signal.
-      </>
-    );
-  } else {
-    reason = (
-      <>
-        Les indicateurs ne convergent pas. Attendez un signal plus net avant
-        d&apos;agir.
-      </>
-    );
-  }
-
-  // Action mapping — mirrors the original HTML dashboard logic.
-  let action: { verb: string; label: string; tone: string } = {
-    verb: "ATTENDRE",
-    label: "Aucun signal clair",
-    tone: "neutre",
-  };
-  if (conv.state === "EUPHORIE" || conv.state === "CALME") {
-    action = {
-      verb: "VENDRE",
-      label:
-        conv.state === "EUPHORIE"
-          ? "Marge de sécurité faible — alléger le risque"
-          : "Valorisations tendues — alléger progressivement",
-      tone: conv.state.toLowerCase(),
-    };
-  } else if (conv.state === "STRESS" || conv.state === "PANIQUE") {
-    action = {
-      verb: "ACHETER",
-      label:
-        conv.state === "PANIQUE"
-          ? "Capitulation — opportunité de renforcer"
-          : "Stress marqué — construire progressivement",
-      tone: conv.state.toLowerCase(),
-    };
-  }
-
   const today = new Date();
   const todayLabel = `${String(today.getDate()).padStart(2, "0")}.${String(
     today.getMonth() + 1
@@ -188,11 +132,6 @@ export default function Dashboard() {
       <div className="shell">
         {/* Top bar */}
         <div className="topbar">
-          <div className="brand">
-            <span className="brand-dot" />
-            <b>Marché</b>
-            <span style={{ color: "var(--ink-3)" }}>Sentiment de Marché</span>
-          </div>
           <div className="topbar-actions">
             <button
               className="icon-btn"
@@ -261,7 +200,6 @@ export default function Dashboard() {
               >
                 {conv.state ? finalLabel : <em>Indéterminé</em>}
               </h2>
-              <div className="verdict-reason">{reason}</div>
             </div>
           </div>
         </div>
@@ -270,9 +208,6 @@ export default function Dashboard() {
         <div className="header">
           <div>
             <div className="eyebrow">{todayLabel}</div>
-            <h1 className="title">
-              Sentiment <em>de marché</em>
-            </h1>
           </div>
           <div className="refresh-block">
             <div className="timestamp">
@@ -334,55 +269,6 @@ export default function Dashboard() {
             loading={refreshing && !payload}
             error={fg?.error}
           />
-        </div>
-
-        {/* Action indicator */}
-        <div className="action-wrap fade-in" key={action.verb}>
-          <div className="action-eyebrow">
-            Action recommandée — {action.verb}
-          </div>
-          <div className="action-scale">
-            <div
-              className={`as-cell a-panique ${
-                action.tone === "panique" ? "on" : ""
-              }`}
-            >
-              <span>Panique</span>
-              <em>Acheter</em>
-            </div>
-            <div
-              className={`as-cell a-stress ${
-                action.tone === "stress" ? "on" : ""
-              }`}
-            >
-              <span>Stress</span>
-              <em>Acheter</em>
-            </div>
-            <div
-              className={`as-cell a-neutre ${
-                action.tone === "neutre" ? "on" : ""
-              }`}
-            >
-              <span>Indéterminé</span>
-              <em>Attendre</em>
-            </div>
-            <div
-              className={`as-cell a-calme ${
-                action.tone === "calme" ? "on" : ""
-              }`}
-            >
-              <span>Calme</span>
-              <em>Vendre</em>
-            </div>
-            <div
-              className={`as-cell a-euphorie ${
-                action.tone === "euphorie" ? "on" : ""
-              }`}
-            >
-              <span>Euphorie</span>
-              <em>Vendre</em>
-            </div>
-          </div>
         </div>
 
         <div className="foot">
