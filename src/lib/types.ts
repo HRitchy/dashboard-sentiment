@@ -11,8 +11,19 @@ export interface SentimentPayload {
   vix: IndicatorReading;
   hyOas: IndicatorReading;
   fearGreed: IndicatorReading;
+  nfci: IndicatorReading;
   fetchedAt: string;
 }
+
+export type NfciCondition = "CALME" | "NORMAL" | "STRESS" | "CRISE";
+
+export const NFCI_THRESHOLDS = {
+  calme: -0.5, // < -0.5 → Calme
+  normal: 0,   // -0.5 ≤ x < 0 → Normal
+  stress: 0.5, // 0 ≤ x < 0.5 → Stress ; x ≥ 0.5 → Crise
+} as const;
+
+export const NFCI_RANGE = { min: -2, max: 4 } as const;
 
 export interface Thresholds {
   vix: { euphorie: number; calme: number; stress: number };

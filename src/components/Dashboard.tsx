@@ -17,6 +17,7 @@ import {
 } from "@/lib/classify";
 import Indicator from "./Indicator";
 import SettingsModal from "./SettingsModal";
+import Speedometer from "./Speedometer";
 
 function formatTime(d: Date): string {
   const hh = String(d.getHours()).padStart(2, "0");
@@ -108,6 +109,7 @@ export default function Dashboard() {
   const vix = payload?.vix;
   const oas = payload?.hyOas;
   const fg = payload?.fearGreed;
+  const nfci = payload?.nfci;
 
   const vixState = classifyVix(vix?.value ?? null, thresholds.vix);
   const oasState = classifyHyOas(oas?.value ?? null, thresholds.oas);
@@ -123,6 +125,7 @@ export default function Dashboard() {
     vix?.error ? `VIX: ${vix.error}` : null,
     oas?.error ? `HY OAS: ${oas.error}` : null,
     fg?.error ? `F&G: ${fg.error}` : null,
+    nfci?.error ? `NFCI: ${nfci.error}` : null,
   ].filter((x): x is string => !!x);
 
   return (
@@ -267,6 +270,15 @@ export default function Dashboard() {
             error={fg?.error}
           />
         </div>
+
+        {/* Market conditions speedometer (NFCI) */}
+        <Speedometer
+          value={nfci?.value ?? null}
+          asOf={nfci?.asOf ?? null}
+          source={nfci?.source ?? "FRED · NFCI"}
+          loading={refreshing && !payload}
+          error={nfci?.error}
+        />
 
       </div>
 
