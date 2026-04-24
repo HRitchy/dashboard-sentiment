@@ -580,57 +580,6 @@ body {
   color: var(--ink);
   font-feature-settings: 'zero', 'tnum';
 }
-.speedo-cond {
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 14px;
-  border: 1px solid currentColor;
-  border-radius: 2px;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink-2);
-}
-.speedo-cond.cond-calme  { color: var(--c-euphorie); }
-.speedo-cond.cond-normal { color: var(--ink-2); }
-.speedo-cond.cond-stress { color: var(--c-stress); }
-.speedo-cond.cond-crise  { color: var(--c-panique); }
-
-.speedo-legend {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  padding: 20px 0 8px;
-  border-top: 1px solid var(--line);
-  margin-top: 12px;
-}
-.speedo-legend-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--ink-2);
-  letter-spacing: 0.01em;
-}
-.speedo-legend-row .dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.speedo-legend-row .dot-calme  { background: var(--c-euphorie); }
-.speedo-legend-row .dot-normal { background: var(--ink-3); }
-.speedo-legend-row .dot-stress { background: var(--c-stress); }
-.speedo-legend-row .dot-crise  { background: var(--c-panique); }
-.speedo-legend-row .rng {
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 10.5px;
-  color: var(--ink-3);
-  margin-left: auto;
-  letter-spacing: 0.02em;
-}
-
 .speedo-foot {
   padding: 8px 0 4px;
   font-family: var(--font-mono), ui-monospace, monospace;
@@ -644,9 +593,6 @@ body {
   .speedo-stage {
     grid-template-columns: 1fr;
     gap: 24px;
-  }
-  .speedo-legend {
-    grid-template-columns: 1fr 1fr;
   }
 }
 
