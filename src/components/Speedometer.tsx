@@ -104,7 +104,7 @@ export default function Speedometer({
   const displayValue =
     value == null
       ? "—"
-      : (value >= 0 ? "+" : "") + value.toFixed(2);
+      : (value >= 0 ? "+" : "") + String(value);
 
   return (
     <div
