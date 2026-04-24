@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  NFCI_RANGE,
-  NFCI_THRESHOLDS,
-  type NfciCondition,
-} from "@/lib/types";
+import { NFCI_RANGE, NFCI_THRESHOLDS } from "@/lib/types";
 
 interface Props {
   value: number | null;
@@ -12,21 +8,6 @@ interface Props {
   source?: string;
   loading?: boolean;
   error?: string;
-}
-
-const CONDITION_LABELS: Record<NfciCondition, string> = {
-  CALME: "Calme",
-  NORMAL: "Normal",
-  STRESS: "Stress",
-  CRISE: "Crise",
-};
-
-function classifyNfci(v: number | null): NfciCondition | null {
-  if (v == null || !Number.isFinite(v)) return null;
-  if (v < NFCI_THRESHOLDS.calme) return "CALME";
-  if (v < NFCI_THRESHOLDS.normal) return "NORMAL";
-  if (v < NFCI_THRESHOLDS.stress) return "STRESS";
-  return "CRISE";
 }
 
 // Geometry — semi-circle gauge, min on the left, max on the right.
@@ -68,9 +49,6 @@ export default function Speedometer({
   loading,
   error,
 }: Props) {
-  const condition = classifyNfci(value);
-  const conditionLabel = condition ? CONDITION_LABELS[condition] : "—";
-
   // Zone boundaries in degrees along the arc.
   const segs: Array<{ from: number; to: number; cls: string }> = [
     {
@@ -120,7 +98,7 @@ export default function Speedometer({
         <svg
           viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
           role="img"
-          aria-label={`NFCI ${displayValue} — ${conditionLabel}`}
+          aria-label={`NFCI ${displayValue}`}
         >
           {/* Track background */}
           <path
@@ -195,32 +173,6 @@ export default function Speedometer({
 
         <div className="speedo-readout">
           <div className="speedo-value">{displayValue}</div>
-          <div
-            className={`speedo-cond ${
-              condition ? `cond-${condition.toLowerCase()}` : ""
-            }`}
-          >
-            {conditionLabel}
-          </div>
-        </div>
-      </div>
-
-      <div className="speedo-legend">
-        <div className="speedo-legend-row">
-          <span className="dot dot-calme" /> Calme
-          <span className="rng">NFCI &lt; -0.5</span>
-        </div>
-        <div className="speedo-legend-row">
-          <span className="dot dot-normal" /> Normal
-          <span className="rng">-0.5 à 0</span>
-        </div>
-        <div className="speedo-legend-row">
-          <span className="dot dot-stress" /> Stress
-          <span className="rng">0 à 0.5</span>
-        </div>
-        <div className="speedo-legend-row">
-          <span className="dot dot-crise" /> Crise
-          <span className="rng">NFCI ≥ 0.5</span>
         </div>
       </div>
 

@@ -15,8 +15,6 @@ export interface SentimentPayload {
   fetchedAt: string;
 }
 
-export type NfciCondition = "CALME" | "NORMAL" | "STRESS" | "CRISE";
-
 export const NFCI_THRESHOLDS = {
   calme: -0.5, // < -0.5 → Calme
   normal: 0,   // -0.5 ≤ x < 0 → Normal
