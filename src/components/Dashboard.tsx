@@ -260,6 +260,7 @@ export default function Dashboard() {
             format={(v) => v.toFixed(2)}
             loading={refreshing && !payload}
             error={oas?.error}
+            asOf={oas?.asOf ?? null}
           />
           <Indicator
             name="Fear & Greed"

@@ -186,6 +186,13 @@ body {
   color: var(--ink-3);
   font-weight: 400;
 }
+.ind-asof {
+  margin-top: 10px;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.02em;
+}
 /* threshold ticks */
 .ticks {
   display: flex;

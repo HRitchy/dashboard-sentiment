@@ -8,6 +8,7 @@ interface Props {
   format?: (v: number) => string;
   loading?: boolean;
   error?: string;
+  asOf?: string | null;
 }
 
 export default function Indicator({
@@ -17,6 +18,7 @@ export default function Indicator({
   unit,
   format,
   loading,
+  asOf,
 }: Props) {
   const displayValue =
     value == null
@@ -35,6 +37,11 @@ export default function Indicator({
         <span>{displayValue}</span>
         {unit && <span className="unit">{unit}</span>}
       </div>
+      {asOf && (
+        <div className="ind-asof">
+          Mis à jour {new Date(asOf).toLocaleDateString("fr-FR")}
+        </div>
+      )}
     </div>
   );
 }
