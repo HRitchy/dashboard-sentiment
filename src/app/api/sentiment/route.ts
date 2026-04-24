@@ -34,16 +34,18 @@ export async function GET(): Promise<Response> {
   const host = h.get("x-forwarded-host") ?? h.get("host");
   const origin = `${proto}://${host}`;
 
-  const [vix, hyOas, fearGreed] = await Promise.all([
+  const [vix, hyOas, fearGreed, nfci] = await Promise.all([
     fetchJson(`${origin}/api/vix`),
     fetchJson(`${origin}/api/hy-oas`),
     fetchJson(`${origin}/api/fear-greed`),
+    fetchJson(`${origin}/api/nfci`),
   ]);
 
   const payload: SentimentPayload = {
     vix,
     hyOas,
     fearGreed,
+    nfci,
     fetchedAt: new Date().toISOString(),
   };
 
