@@ -69,6 +69,22 @@ body {
   border-bottom: 1px solid var(--line);
 }
 .topbar-actions { display: flex; gap: 8px; }
+.topbar-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-2);
+  text-decoration: none;
+  letter-spacing: -0.005em;
+  transition: all 0.15s ease;
+}
+.topbar-link:hover { color: var(--ink); border-color: var(--line-2); }
+.topbar-link svg { width: 14px; height: 14px; }
 .icon-btn {
   width: 34px; height: 34px;
   border: 1px solid var(--line);
