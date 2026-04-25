@@ -679,12 +679,6 @@ export default function Sp500Client() {
         </div>
 
         <div className={styles.header}>
-          <div>
-            <div className={styles.eyebrow}>^GSPC · S&amp;P 500 INDEX</div>
-            <h1 className={styles.title}>
-              S&amp;P <em>500</em>
-            </h1>
-          </div>
           <div className={styles.lastUpdate}>
             {stats ? `Mis à jour · ${fmtDate(stats.last.t)}` : "— —"}
           </div>
