@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import {
   DEFAULT_THRESHOLDS,
+  NFCI_RANGE,
+  NFCI_THRESHOLDS,
   type SentimentPayload,
   type Thresholds,
 } from "@/lib/types";
@@ -16,9 +18,23 @@ import {
   STATE_LABELS,
   STATE_SIGNALS,
 } from "@/lib/classify";
-import Indicator from "./Indicator";
 import SettingsModal from "./SettingsModal";
-import Speedometer from "./Speedometer";
+import Speedometer, { type SpeedoZone } from "./Speedometer";
+
+const VIX_RANGE = { min: 0, max: 50 } as const;
+const VIX_TICKS = [0, 10, 20, 30, 40, 50];
+
+const OAS_RANGE = { min: 2, max: 10 } as const;
+const OAS_TICKS = [2, 4, 6, 8, 10];
+
+const FG_RANGE = { min: 0, max: 100 } as const;
+const FG_TICKS = [0, 25, 50, 75, 100];
+
+const NFCI_TICKS = [-2, -1, 0, 1, 2, 3, 4];
+
+function nfciValue(v: number): string {
+  return (v >= 0 ? "+" : "") + String(v);
+}
 
 function formatTime(d: Date): string {
   const hh = String(d.getHours()).padStart(2, "0");
@@ -257,41 +273,78 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Indicators */}
-        <div className="indicators">
-          <Indicator
+        {/* Indicator speedometers — VIX / HY OAS / Fear & Greed */}
+        <div className="speedos-row">
+          <Speedometer
             name="VIX"
-            src={vix?.source ?? "^VIX · CBOE"}
+            source={vix?.source ?? "^VIX · CBOE"}
             value={vix?.value ?? null}
-            format={(v) => v.toFixed(2)}
+            range={VIX_RANGE}
+            ticks={VIX_TICKS}
+            zones={[
+              { from: VIX_RANGE.min, to: thresholds.vix.euphorie, cls: "seg-euphorie" },
+              { from: thresholds.vix.euphorie, to: thresholds.vix.calme, cls: "seg-calme" },
+              { from: thresholds.vix.calme, to: thresholds.vix.stress, cls: "seg-stress" },
+              { from: thresholds.vix.stress, to: VIX_RANGE.max, cls: "seg-panique" },
+            ] satisfies SpeedoZone[]}
+            formatValue={(v) => v.toFixed(2)}
             loading={refreshing && !payload}
             error={vix?.error}
+            compact
           />
-          <Indicator
+          <Speedometer
             name="HY OAS"
-            src={oas?.source ?? "BAMLH0A0HYM2 · FRED"}
+            source={oas?.source ?? "BAMLH0A0HYM2 · FRED"}
             value={oas?.value ?? null}
-            unit="%"
-            format={(v) => v.toFixed(2)}
+            range={OAS_RANGE}
+            ticks={OAS_TICKS}
+            zones={[
+              { from: OAS_RANGE.min, to: thresholds.oas.euphorie, cls: "seg-euphorie" },
+              { from: thresholds.oas.euphorie, to: thresholds.oas.calme, cls: "seg-calme" },
+              { from: thresholds.oas.calme, to: thresholds.oas.stress, cls: "seg-stress" },
+              { from: thresholds.oas.stress, to: OAS_RANGE.max, cls: "seg-panique" },
+            ] satisfies SpeedoZone[]}
+            formatValue={(v) => `${v.toFixed(2)}%`}
+            asOf={oas?.asOf ?? null}
             loading={refreshing && !payload}
             error={oas?.error}
-            asOf={oas?.asOf ?? null}
+            compact
           />
-          <Indicator
+          <Speedometer
             name="Fear & Greed"
-            src={fg?.source ?? "CNN · 0–100"}
+            source={fg?.source ?? "CNN · 0–100"}
             value={fg?.value ?? null}
-            format={(v) => v.toFixed(0)}
+            range={FG_RANGE}
+            ticks={FG_TICKS}
+            zones={[
+              { from: FG_RANGE.min, to: thresholds.fg.panique, cls: "seg-panique" },
+              { from: thresholds.fg.panique, to: thresholds.fg.stress, cls: "seg-stress" },
+              { from: thresholds.fg.stress, to: thresholds.fg.neutre, cls: "seg-neutre" },
+              { from: thresholds.fg.neutre, to: thresholds.fg.calme, cls: "seg-calme" },
+              { from: thresholds.fg.calme, to: FG_RANGE.max, cls: "seg-euphorie" },
+            ] satisfies SpeedoZone[]}
+            formatValue={(v) => v.toFixed(0)}
             loading={refreshing && !payload}
             error={fg?.error}
+            compact
           />
         </div>
 
         {/* Market conditions speedometer (NFCI) */}
         <Speedometer
-          value={nfci?.value ?? null}
-          asOf={nfci?.asOf ?? null}
+          name="Conditions de marché"
           source={nfci?.source ?? "FRED · NFCI"}
+          value={nfci?.value ?? null}
+          range={NFCI_RANGE}
+          ticks={NFCI_TICKS}
+          zones={[
+            { from: NFCI_RANGE.min, to: NFCI_THRESHOLDS.calme, cls: "seg-euphorie" },
+            { from: NFCI_THRESHOLDS.calme, to: NFCI_THRESHOLDS.normal, cls: "seg-neutre" },
+            { from: NFCI_THRESHOLDS.normal, to: NFCI_THRESHOLDS.stress, cls: "seg-stress" },
+            { from: NFCI_THRESHOLDS.stress, to: NFCI_RANGE.max, cls: "seg-panique" },
+          ] satisfies SpeedoZone[]}
+          formatValue={nfciValue}
+          asOf={nfci?.asOf ?? null}
           loading={refreshing && !payload}
           error={nfci?.error}
         />

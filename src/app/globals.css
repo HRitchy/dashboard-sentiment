@@ -571,10 +571,11 @@ body {
   display: block;
 }
 
-.speedo-seg.seg-calme  { stroke: var(--c-euphorie); }
-.speedo-seg.seg-normal { stroke: var(--ink-3); }
-.speedo-seg.seg-stress { stroke: var(--c-stress); }
-.speedo-seg.seg-crise  { stroke: var(--c-panique); }
+.speedo-seg.seg-euphorie { stroke: var(--c-euphorie); }
+.speedo-seg.seg-calme    { stroke: var(--c-calme); }
+.speedo-seg.seg-neutre   { stroke: var(--ink-3); }
+.speedo-seg.seg-stress   { stroke: var(--c-stress); }
+.speedo-seg.seg-panique  { stroke: var(--c-panique); }
 
 .speedo-tick-label {
   font-family: var(--font-mono), ui-monospace, monospace;
@@ -617,6 +618,40 @@ body {
     grid-template-columns: 1fr;
     gap: 24px;
   }
+}
+
+/* ---- Compact speedometer (used in 3-column row) ---- */
+.speedos-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px;
+  margin-bottom: 64px;
+}
+.speedos-row .speedo {
+  margin-bottom: 0;
+  padding: 24px 0 16px;
+}
+.speedo-compact .speedo-stage {
+  grid-template-columns: 1fr;
+  gap: 8px;
+  padding: 8px 0 4px;
+}
+.speedo-compact .speedo-stage svg {
+  max-width: 320px;
+  margin: 0 auto;
+}
+.speedo-compact .speedo-readout {
+  align-items: center;
+  min-width: 0;
+}
+.speedo-compact .speedo-value {
+  font-size: 40px;
+}
+.speedo-compact .speedo-foot {
+  text-align: center;
+}
+@media (max-width: 960px) {
+  .speedos-row { grid-template-columns: 1fr; gap: 16px; }
 }
 
 /* ============ ERROR BANNER ============ */

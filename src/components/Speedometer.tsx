@@ -1,13 +1,24 @@
 "use client";
 
-import { NFCI_RANGE, NFCI_THRESHOLDS } from "@/lib/types";
+export interface SpeedoZone {
+  from: number;
+  to: number;
+  cls: string; // e.g. "seg-euphorie" | "seg-calme" | "seg-neutre" | "seg-stress" | "seg-panique"
+}
 
 interface Props {
+  name: string;
   value: number | null;
+  range: { min: number; max: number };
+  zones: SpeedoZone[];
+  ticks: number[];
   asOf?: string | null;
   source?: string;
   loading?: boolean;
   error?: string;
+  formatValue?: (v: number) => string;
+  formatTick?: (v: number) => string;
+  compact?: boolean;
 }
 
 // Geometry — semi-circle gauge, min on the left, max on the right.
@@ -21,11 +32,10 @@ const CY = LABEL_EXTENT + MARGIN;
 const VIEW_W = CX * 2;
 const VIEW_H = CY + 24; // small strip below the diameter
 
-function valueToAngle(v: number): number {
-  const { min, max } = NFCI_RANGE;
+function valueToAngle(v: number, min: number, max: number): number {
   const clamped = Math.min(max, Math.max(min, v));
   const t = (clamped - min) / (max - min); // 0..1
-  // -90° (left) → +90° (right). We use degrees where 0° points right.
+  // -180° (left) → 0° (right). 0° points right in SVG.
   return -180 + t * 180;
 }
 
@@ -38,67 +48,52 @@ function arcPath(r: number, startDeg: number, endDeg: number): string {
   const start = polar(CX, CY, r, startDeg);
   const end = polar(CX, CY, r, endDeg);
   const large = Math.abs(endDeg - startDeg) > 180 ? 1 : 0;
-  // Sweep flag 1 because we go clockwise from start (smaller deg) to end (larger deg).
   return `M ${start.x} ${start.y} A ${r} ${r} 0 ${large} 1 ${end.x} ${end.y}`;
 }
 
 export default function Speedometer({
+  name,
   value,
+  range,
+  zones,
+  ticks,
   asOf,
   source,
   loading,
   error,
+  formatValue,
+  formatTick,
+  compact,
 }: Props) {
-  // Zone boundaries in degrees along the arc.
-  const segs: Array<{ from: number; to: number; cls: string }> = [
-    {
-      from: valueToAngle(NFCI_RANGE.min),
-      to: valueToAngle(NFCI_THRESHOLDS.calme),
-      cls: "seg-calme",
-    },
-    {
-      from: valueToAngle(NFCI_THRESHOLDS.calme),
-      to: valueToAngle(NFCI_THRESHOLDS.normal),
-      cls: "seg-normal",
-    },
-    {
-      from: valueToAngle(NFCI_THRESHOLDS.normal),
-      to: valueToAngle(NFCI_THRESHOLDS.stress),
-      cls: "seg-stress",
-    },
-    {
-      from: valueToAngle(NFCI_THRESHOLDS.stress),
-      to: valueToAngle(NFCI_RANGE.max),
-      cls: "seg-crise",
-    },
-  ];
+  const { min, max } = range;
 
-  // Tick marks for every integer in the range.
-  const ticks: number[] = [];
-  for (let i = NFCI_RANGE.min; i <= NFCI_RANGE.max; i++) ticks.push(i);
+  const segs = zones.map((z) => ({
+    from: valueToAngle(z.from, min, max),
+    to: valueToAngle(z.to, min, max),
+    cls: z.cls,
+  }));
 
-  const needleAngle = value == null ? null : valueToAngle(value);
+  const needleAngle = value == null ? null : valueToAngle(value, min, max);
 
   const displayValue =
-    value == null
-      ? "—"
-      : (value >= 0 ? "+" : "") + String(value);
+    value == null ? "—" : formatValue ? formatValue(value) : String(value);
+  const displayTick = formatTick ?? ((v: number) => String(v));
 
   return (
     <div
-      className="speedo fade-in"
+      className={`speedo fade-in${compact ? " speedo-compact" : ""}`}
       style={{ opacity: loading && value == null ? 0.4 : 1 }}
     >
       <div className="speedo-head">
-        <span className="speedo-name">Conditions de marché</span>
-        <span className="speedo-src">{source ?? "FRED · NFCI"}</span>
+        <span className="speedo-name">{name}</span>
+        {source ? <span className="speedo-src">{source}</span> : null}
       </div>
 
       <div className="speedo-stage">
         <svg
           viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
           role="img"
-          aria-label={`NFCI ${displayValue}`}
+          aria-label={`${name} ${displayValue}`}
         >
           {/* Track background */}
           <path
@@ -123,7 +118,7 @@ export default function Speedometer({
 
           {/* Ticks + numeric labels */}
           {ticks.map((t) => {
-            const a = valueToAngle(t);
+            const a = valueToAngle(t, min, max);
             const outer = polar(CX, CY, R + STROKE / 2 + 2, a);
             const inner = polar(CX, CY, R - STROKE / 2 - 2, a);
             const label = polar(CX, CY, R + STROKE / 2 + 16, a);
@@ -144,7 +139,7 @@ export default function Speedometer({
                   dominantBaseline="middle"
                   className="speedo-tick-label"
                 >
-                  {t}
+                  {displayTick(t)}
                 </text>
               </g>
             );
