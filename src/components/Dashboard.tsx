@@ -235,10 +235,7 @@ export default function Dashboard() {
                 {conv.state ? finalLabel : <em>Indéterminé</em>}
               </h2>
               {signal && (
-                <div className={`verdict-signal sig-${signal.toLowerCase()}`}>
-                  <span className="sig-arrow" aria-hidden>
-                    {signal === "ACHETER" ? "↗" : "↘"}
-                  </span>
+                <div className="verdict-signal">
                   <span className="sig-label">{SIGNAL_LABELS[signal]}</span>
                 </div>
               )}
