@@ -409,91 +409,6 @@
   color: var(--bg);
 }
 
-.statsGrid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0;
-  border: 1px solid var(--line);
-}
-.stat {
-  padding: 22px 24px;
-  border-right: 1px solid var(--line);
-}
-.stat:last-child {
-  border-right: none;
-}
-.statLabel {
-  font-size: 10.5px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-  margin-bottom: 8px;
-  font-weight: 600;
-}
-.statValue {
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 22px;
-  font-weight: 500;
-  letter-spacing: -0.015em;
-}
-.statSub {
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 11px;
-  color: var(--ink-3);
-  margin-top: 4px;
-  letter-spacing: 0.02em;
-}
-
-.signalRow {
-  margin-top: 32px;
-  padding: 20px 24px;
-  border: 1px solid var(--line);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-.signalEyebrow {
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-  margin-bottom: 6px;
-}
-.signalTitle {
-  font-size: 18px;
-  font-weight: 500;
-  letter-spacing: -0.015em;
-}
-.signalTitle em {
-  font-family: var(--font-serif), serif;
-  font-style: italic;
-  font-weight: 400;
-}
-.signalPill {
-  padding: 8px 14px;
-  border: 1px solid var(--ink);
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-.signalPill.bull {
-  background: var(--ink);
-  color: var(--bg);
-}
-.signalPill.bear {
-  background: transparent;
-  color: var(--ink);
-}
-.signalPill.neutral {
-  background: transparent;
-  color: var(--ink-3);
-  border-color: var(--line-2);
-}
-
 .foot {
   margin-top: 56px;
   padding-top: 24px;
@@ -523,16 +438,6 @@
   }
   .quotePrice {
     font-size: 56px;
-  }
-  .statsGrid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .stat:nth-child(2) {
-    border-right: none;
-  }
-  .stat:nth-child(1),
-  .stat:nth-child(2) {
-    border-bottom: 1px solid var(--line);
   }
   .chartSvgWrap {
     height: 360px;

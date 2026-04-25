@@ -642,8 +642,6 @@ export default function Sp500Client() {
 
     const lastMM50 = slice.mm50[slice.mm50.length - 1];
     const lastMM200 = slice.mm200[slice.mm200.length - 1];
-    const goldenCross =
-      lastMM50 != null && lastMM200 != null && lastMM50 > lastMM200;
 
     return {
       last,
@@ -656,7 +654,6 @@ export default function Sp500Client() {
       low52,
       lastMM50,
       lastMM200,
-      goldenCross,
     };
   }, [data, slice]);
 
@@ -821,94 +818,6 @@ export default function Sp500Client() {
                 mm50={slice.mm50}
                 mm200={slice.mm200}
               />
-            </div>
-
-            <div className={styles.statsGrid}>
-              <div className={styles.stat}>
-                <div className={styles.statLabel}>Cours / MM50</div>
-                <div className={styles.statValue}>
-                  {stats.lastMM50 != null
-                    ? `${
-                        (stats.last.c / stats.lastMM50 - 1) * 100 >= 0
-                          ? "+"
-                          : "−"
-                      }${Math.abs(
-                        (stats.last.c / stats.lastMM50 - 1) * 100
-                      ).toFixed(2)}%`
-                    : "—"}
-                </div>
-                <div className={styles.statSub}>
-                  {stats.lastMM50 != null && stats.last.c > stats.lastMM50
-                    ? "au-dessus"
-                    : stats.lastMM50 != null
-                      ? "en dessous"
-                      : ""}
-                </div>
-              </div>
-              <div className={styles.stat}>
-                <div className={styles.statLabel}>Cours / MM200</div>
-                <div className={styles.statValue}>
-                  {stats.lastMM200 != null
-                    ? `${
-                        (stats.last.c / stats.lastMM200 - 1) * 100 >= 0
-                          ? "+"
-                          : "−"
-                      }${Math.abs(
-                        (stats.last.c / stats.lastMM200 - 1) * 100
-                      ).toFixed(2)}%`
-                    : "—"}
-                </div>
-                <div className={styles.statSub}>
-                  {stats.lastMM200 != null && stats.last.c > stats.lastMM200
-                    ? "au-dessus"
-                    : stats.lastMM200 != null
-                      ? "en dessous"
-                      : ""}
-                </div>
-              </div>
-              <div className={styles.stat}>
-                <div className={styles.statLabel}>MM50 vs MM200</div>
-                <div className={styles.statValue}>
-                  {stats.lastMM50 != null && stats.lastMM200 != null
-                    ? `${
-                        (stats.lastMM50 / stats.lastMM200 - 1) * 100 >= 0
-                          ? "+"
-                          : "−"
-                      }${Math.abs(
-                        (stats.lastMM50 / stats.lastMM200 - 1) * 100
-                      ).toFixed(2)}%`
-                    : "—"}
-                </div>
-                <div className={styles.statSub}>
-                  {stats.goldenCross ? "tendance haussière" : "tendance baissière"}
-                </div>
-              </div>
-            </div>
-
-            <div className={styles.signalRow}>
-              <div>
-                <div className={styles.signalEyebrow}>Signal technique</div>
-                <div className={styles.signalTitle}></div>
-              </div>
-              {(() => {
-                const bull =
-                  stats.goldenCross &&
-                  stats.lastMM200 != null &&
-                  stats.last.c > stats.lastMM200;
-                const bear =
-                  !stats.goldenCross &&
-                  stats.lastMM200 != null &&
-                  stats.last.c < stats.lastMM200;
-                const cls = bull
-                  ? styles.bull
-                  : bear
-                    ? styles.bear
-                    : styles.neutral;
-                const label = bull ? "HAUSSIER" : bear ? "BAISSIER" : "NEUTRE";
-                return (
-                  <div className={`${styles.signalPill} ${cls}`}>{label}</div>
-                );
-              })()}
             </div>
           </>
         )}
