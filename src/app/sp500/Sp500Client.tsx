@@ -50,12 +50,6 @@ function fmtDate(ts: number): string {
     year: "numeric",
   });
 }
-function fmtDateShort(ts: number): string {
-  return new Date(ts * 1000).toLocaleDateString("fr-FR", {
-    day: "2-digit",
-    month: "short",
-  });
-}
 function fmtMonthYear(ts: number): string {
   return new Date(ts * 1000).toLocaleDateString("fr-FR", {
     month: "short",
@@ -651,29 +645,6 @@ export default function Sp500Client() {
     const goldenCross =
       lastMM50 != null && lastMM200 != null && lastMM50 > lastMM200;
 
-    let crossInfo: { type: "golden" | "death"; t: number } | null = null;
-    for (
-      let i = slice.mm50.length - 2;
-      i >= Math.max(0, slice.mm50.length - 30);
-      i--
-    ) {
-      const a0 = slice.mm50[i];
-      const b0 = slice.mm200[i];
-      const a1 = slice.mm50[i + 1];
-      const b1 = slice.mm200[i + 1];
-      if (a0 != null && b0 != null && a1 != null && b1 != null) {
-        const before = a0 - b0;
-        const after = a1 - b1;
-        if (before * after < 0) {
-          crossInfo = {
-            type: after > 0 ? "golden" : "death",
-            t: slice.points[i + 1]?.t,
-          };
-          break;
-        }
-      }
-    }
-
     return {
       last,
       first,
@@ -686,7 +657,6 @@ export default function Sp500Client() {
       lastMM50,
       lastMM200,
       goldenCross,
-      crossInfo,
     };
   }, [data, slice]);
 
@@ -913,21 +883,6 @@ export default function Sp500Client() {
                   {stats.goldenCross ? "tendance haussière" : "tendance baissière"}
                 </div>
               </div>
-              <div className={styles.stat}>
-                <div className={styles.statLabel}>Dernier croisement</div>
-                <div className={styles.statValue}>
-                  {stats.crossInfo
-                    ? stats.crossInfo.type === "golden"
-                      ? "Golden"
-                      : "Death"
-                    : "—"}
-                </div>
-                <div className={styles.statSub}>
-                  {stats.crossInfo
-                    ? fmtDateShort(stats.crossInfo.t)
-                    : "aucun récent"}
-                </div>
-              </div>
             </div>
 
             <div className={styles.signalRow}>
@@ -960,11 +915,6 @@ export default function Sp500Client() {
 
         <div className={styles.foot}>
           <span>Source · query2.finance.yahoo.com · ^GSPC</span>
-          <span>
-            {data && slice
-              ? `${slice.points.length.toLocaleString("fr-FR")} points · du ${fmtDate(slice.points[0].t)} au ${fmtDate(slice.points[slice.points.length - 1].t)}${data.source ? " · via " + data.source : ""}`
-              : "— points"}
-          </span>
         </div>
       </div>
     </div>
