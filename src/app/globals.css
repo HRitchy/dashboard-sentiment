@@ -260,7 +260,6 @@ body {
   letter-spacing: -0.055em;
   line-height: 0.85;
   margin: 0 0 28px 0;
-  color: var(--ink);
   white-space: nowrap;
 }
 .verdict-title.small { font-size: 96px; }
