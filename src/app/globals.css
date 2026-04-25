@@ -29,6 +29,7 @@ html[data-theme="dark"] {
 
 .w-euphorie { color: var(--c-euphorie); }
 .w-calme { color: var(--c-calme); }
+.w-neutre { color: var(--ink-2); }
 .w-stress { color: var(--c-stress); }
 .w-panique { color: var(--c-panique); }
 
@@ -603,6 +604,20 @@ body {
   line-height: 1;
   color: var(--ink);
   font-feature-settings: 'zero', 'tnum';
+}
+.speedo-state {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  line-height: 1;
+}
+.speedo-state-empty {
+  color: var(--ink-3);
+  border-color: var(--line);
 }
 .speedo-foot {
   padding: 8px 0 4px;

@@ -1,5 +1,8 @@
 "use client";
 
+import type { SentimentState } from "@/lib/types";
+import { STATE_LABELS } from "@/lib/classify";
+
 export interface SpeedoZone {
   from: number;
   to: number;
@@ -16,6 +19,7 @@ interface Props {
   source?: string;
   loading?: boolean;
   error?: string;
+  state?: SentimentState | null;
   formatValue?: (v: number) => string;
   formatTick?: (v: number) => string;
   compact?: boolean;
@@ -61,6 +65,7 @@ export default function Speedometer({
   source,
   loading,
   error,
+  state,
   formatValue,
   formatTick,
   compact,
@@ -168,6 +173,13 @@ export default function Speedometer({
 
         <div className="speedo-readout">
           <div className="speedo-value">{displayValue}</div>
+          {state ? (
+            <div className={`speedo-state w-${state.toLowerCase()}`}>
+              {STATE_LABELS[state]}
+            </div>
+          ) : value != null ? (
+            <div className="speedo-state speedo-state-empty">—</div>
+          ) : null}
         </div>
       </div>
 
