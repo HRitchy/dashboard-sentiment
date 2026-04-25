@@ -15,7 +15,10 @@ function emptyReading(source: string, error: string): IndicatorReading {
 
 async function fetchJson(url: string): Promise<IndicatorReading> {
   try {
-    const res = await fetch(url, { cache: "no-store" });
+    const res = await fetch(url, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(8000),
+    });
     // Each sub-route returns an IndicatorReading whether ok or not.
     return (await res.json()) as IndicatorReading;
   } catch (err) {
