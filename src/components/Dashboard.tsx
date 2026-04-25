@@ -12,6 +12,7 @@ import {
 import {
   classifyFg,
   classifyHyOas,
+  classifyNfci,
   classifyVix,
   convergence,
   SIGNAL_LABELS,
@@ -131,6 +132,7 @@ export default function Dashboard() {
   const vixState = classifyVix(vix?.value ?? null, thresholds.vix);
   const oasState = classifyHyOas(oas?.value ?? null, thresholds.oas);
   const fgState = classifyFg(fg?.value ?? null, thresholds.fg);
+  const nfciState = classifyNfci(nfci?.value ?? null);
 
   const conv = convergence([vixState, oasState, fgState]);
   const finalLabel = conv.state ? STATE_LABELS[conv.state] : "Indéterminé";
@@ -290,6 +292,7 @@ export default function Dashboard() {
             formatValue={(v) => v.toFixed(2)}
             loading={refreshing && !payload}
             error={vix?.error}
+            state={vixState}
             compact
           />
           <Speedometer
@@ -308,6 +311,7 @@ export default function Dashboard() {
             asOf={oas?.asOf ?? null}
             loading={refreshing && !payload}
             error={oas?.error}
+            state={oasState}
             compact
           />
           <Speedometer
@@ -326,6 +330,7 @@ export default function Dashboard() {
             formatValue={(v) => v.toFixed(0)}
             loading={refreshing && !payload}
             error={fg?.error}
+            state={fgState}
             compact
           />
         </div>
@@ -347,6 +352,7 @@ export default function Dashboard() {
           asOf={nfci?.asOf ?? null}
           loading={refreshing && !payload}
           error={nfci?.error}
+          state={nfciState}
         />
 
       </div>

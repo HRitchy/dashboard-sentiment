@@ -1,4 +1,4 @@
-import type { SentimentState, Thresholds } from "./types";
+import { NFCI_THRESHOLDS, type SentimentState, type Thresholds } from "./types";
 
 export function classifyVix(
   v: number | null,
@@ -32,6 +32,14 @@ export function classifyFg(
   if (v < t.neutre) return "NEUTRE";
   if (v < t.calme) return "CALME";
   return "EUPHORIE";
+}
+
+export function classifyNfci(v: number | null): SentimentState | null {
+  if (v == null) return null;
+  if (v < NFCI_THRESHOLDS.calme) return "EUPHORIE";
+  if (v < NFCI_THRESHOLDS.normal) return "NEUTRE";
+  if (v < NFCI_THRESHOLDS.stress) return "STRESS";
+  return "PANIQUE";
 }
 
 export function convergence(
