@@ -15,9 +15,9 @@ import {
   classifyNfci,
   classifyVix,
   convergence,
-  SIGNAL_LABELS,
+  INDETERMINATE_RECOMMENDATION,
+  STATE_RECOMMENDATIONS,
   STATE_SENTENCES,
-  STATE_SIGNALS,
 } from "@/lib/classify";
 import SettingsModal from "./SettingsModal";
 import Speedometer, { type SpeedoZone } from "./Speedometer";
@@ -136,7 +136,9 @@ export default function Dashboard() {
 
   const conv = convergence([vixState, oasState, fgState]);
   const finalSentence = conv.state ? STATE_SENTENCES[conv.state] : "État indéterminé.";
-  const signal = conv.state ? STATE_SIGNALS[conv.state] : null;
+  const recommendation = conv.state
+    ? STATE_RECOMMENDATIONS[conv.state]
+    : INDETERMINATE_RECOMMENDATION;
 
   // Build a single error banner summarising individual reading failures.
   const errors = [
@@ -233,11 +235,9 @@ export default function Dashboard() {
               >
                 {conv.state ? finalSentence : <em>{finalSentence}</em>}
               </h2>
-              {signal && (
-                <div className="verdict-signal">
-                  <span className="sig-label">{SIGNAL_LABELS[signal]}</span>
-                </div>
-              )}
+              <div className="verdict-signal">
+                <span className="sig-label">{recommendation}</span>
+              </div>
             </div>
           </div>
         </div>
