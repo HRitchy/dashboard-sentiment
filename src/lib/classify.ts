@@ -69,6 +69,14 @@ export const STATE_LABELS: Record<SentimentState, string> = {
   PANIQUE: "Panique",
 };
 
+export const STATE_SENTENCES: Record<SentimentState, string> = {
+  EUPHORIE: "Le marché est en euphorie.",
+  CALME: "Le marché est calme.",
+  NEUTRE: "Le marché est neutre.",
+  STRESS: "Le marché est sous stress.",
+  PANIQUE: "Le marché est en panique.",
+};
+
 export type TradingSignal = "ACHETER" | "VENDRE";
 
 export const STATE_SIGNALS: Record<SentimentState, TradingSignal | null> = {

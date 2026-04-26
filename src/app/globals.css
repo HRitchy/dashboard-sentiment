@@ -255,14 +255,14 @@ body {
 }
 
 .verdict-title {
-  font-size: 148px;
+  font-size: 72px;
   font-weight: 500;
-  letter-spacing: -0.055em;
-  line-height: 0.85;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
   margin: 0 0 28px 0;
-  white-space: nowrap;
+  max-width: 18ch;
+  text-wrap: balance;
 }
-.verdict-title.small { font-size: 96px; }
 .verdict-title em {
   font-family: var(--font-serif), serif;
   font-style: italic;
@@ -686,8 +686,7 @@ body {
   .ind:first-child { border-top: none; }
   .header { justify-content: flex-start; }
   .verdict { grid-template-columns: 1fr; }
-  .verdict-title { font-size: 72px; }
-  .verdict-title.small { font-size: 56px; }
+  .verdict-title { font-size: 48px; }
 }
 @media (max-width: 720px) {
   .modal-head, .modal-body, .modal-foot { padding-left: 24px; padding-right: 24px; }

@@ -16,7 +16,7 @@ import {
   classifyVix,
   convergence,
   SIGNAL_LABELS,
-  STATE_LABELS,
+  STATE_SENTENCES,
   STATE_SIGNALS,
 } from "@/lib/classify";
 import SettingsModal from "./SettingsModal";
@@ -135,8 +135,7 @@ export default function Dashboard() {
   const nfciState = classifyNfci(nfci?.value ?? null);
 
   const conv = convergence([vixState, oasState, fgState]);
-  const finalLabel = conv.state ? STATE_LABELS[conv.state] : "Indéterminé";
-  const titleIsLong = finalLabel.length > 8;
+  const finalSentence = conv.state ? STATE_SENTENCES[conv.state] : "État indéterminé.";
   const signal = conv.state ? STATE_SIGNALS[conv.state] : null;
 
   // Build a single error banner summarising individual reading failures.
@@ -225,14 +224,14 @@ export default function Dashboard() {
 
         {/* Global verdict — hero */}
         <div className="verdict-hero">
-          <div className="verdict" key={finalLabel}>
+          <div className="verdict" key={finalSentence}>
             <div className="fade-in">
               <h2
-                className={`verdict-title ${titleIsLong ? "small" : ""} ${
-                  conv.state ? `w-${finalLabel.toLowerCase()}` : ""
+                className={`verdict-title ${
+                  conv.state ? `w-${conv.state.toLowerCase()}` : ""
                 }`}
               >
-                {conv.state ? finalLabel : <em>Indéterminé</em>}
+                {conv.state ? finalSentence : <em>{finalSentence}</em>}
               </h2>
               {signal && (
                 <div className="verdict-signal">
