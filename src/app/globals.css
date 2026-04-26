@@ -271,13 +271,14 @@ body {
 .verdict-signal {
   display: inline-flex;
   align-items: center;
-  padding: 8px 16px;
+  padding: 10px 16px;
   border: 1px solid currentColor;
   border-radius: 2px;
   font-size: 14px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-weight: 500;
+  line-height: 1.4;
+  max-width: 52ch;
+  text-wrap: balance;
   margin-bottom: 28px;
 }
 /* ============ SETTINGS MODAL ============ */

@@ -77,17 +77,15 @@ export const STATE_SENTENCES: Record<SentimentState, string> = {
   PANIQUE: "Le marché est en panique.",
 };
 
-export type TradingSignal = "ACHETER" | "VENDRE";
-
-export const STATE_SIGNALS: Record<SentimentState, TradingSignal | null> = {
-  EUPHORIE: "VENDRE",
-  CALME: "VENDRE",
-  NEUTRE: null,
-  STRESS: "ACHETER",
-  PANIQUE: "ACHETER",
+export const STATE_RECOMMENDATIONS: Record<SentimentState, string> = {
+  EUPHORIE:
+    "Vendre progressivement pour ramener l'exposition aux actions à 80 %.",
+  CALME:
+    "Vendre progressivement pour ramener l'exposition aux actions à 80 %.",
+  NEUTRE: "Maintenir les positions actuelles sans intervention.",
+  STRESS: "Acheter pour atteindre une exposition aux actions de 82,5 %.",
+  PANIQUE: "Acheter pour atteindre une exposition aux actions de 85 %.",
 };
 
-export const SIGNAL_LABELS: Record<TradingSignal, string> = {
-  ACHETER: "Acheter",
-  VENDRE: "Vendre",
-};
+export const INDETERMINATE_RECOMMENDATION =
+  "Maintenir les positions actuelles sans intervention.";
