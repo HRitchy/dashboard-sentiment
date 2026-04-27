@@ -664,7 +664,6 @@ export default function Sp500Client() {
       <div className={styles.shell}>
         <div className={styles.topbar}>
           <div className={styles.brand}>
-            <span className={styles.brandDot} />
             <Link href="/">Sentiment de Marché</Link>
             <span className={styles.brandSep}>/</span>
             <span>S&amp;P 500</span>
