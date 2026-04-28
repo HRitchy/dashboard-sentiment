@@ -225,7 +225,11 @@ export default function Dashboard() {
         )}
 
         {/* Global verdict — hero */}
-        <div className="verdict-hero">
+        <div
+          className={`verdict-hero ${
+            conv.state ? `panel-${conv.state.toLowerCase()}` : "panel-neutre"
+          }`}
+        >
           <div className="verdict" key={finalSentence}>
             <div className="fade-in">
               <h2
@@ -235,7 +239,11 @@ export default function Dashboard() {
               >
                 {conv.state ? finalSentence : <em>{finalSentence}</em>}
               </h2>
-              <div className="verdict-signal">
+              <div
+                className={`verdict-signal ${
+                  conv.state ? `w-${conv.state.toLowerCase()}` : ""
+                }`}
+              >
                 <span className="sig-label">{recommendation}</span>
               </div>
             </div>
