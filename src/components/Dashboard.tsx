@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import {
+  DEFAULT_THRESHOLDS,
   NFCI_RANGE,
   NFCI_THRESHOLDS,
   type SentimentPayload,
+  type Thresholds,
 } from "@/lib/types";
 import {
   classifyFg,
@@ -14,12 +16,9 @@ import {
   classifyVix,
   convergence,
   INDETERMINATE_RECOMMENDATION,
-  STATE_LABELS,
   STATE_RECOMMENDATIONS,
   STATE_SENTENCES,
 } from "@/lib/classify";
-import { useTheme } from "@/lib/use-theme";
-import { useThresholds } from "@/lib/use-thresholds";
 import SettingsModal from "./SettingsModal";
 import Speedometer, { type SpeedoZone } from "./Speedometer";
 
@@ -35,7 +34,7 @@ const FG_TICKS = [0, 25, 50, 75, 100];
 const NFCI_TICKS = [-2, -1, 0, 1, 2, 3, 4];
 
 function nfciValue(v: number): string {
-  return (v >= 0 ? "+" : "") + v.toFixed(2);
+  return (v >= 0 ? "+" : "") + String(v);
 }
 
 function formatTime(d: Date): string {
@@ -47,14 +46,55 @@ function formatTime(d: Date): string {
   return `${DD}.${MM} · ${hh}:${mm}:${ss}`;
 }
 
+const STORAGE_KEY = "dashboard-thresholds";
+const THEME_KEY = "dashboard-theme";
+
 export default function Dashboard() {
-  const { thresholds, setThresholds } = useThresholds();
-  const { theme, toggle: toggleTheme } = useTheme();
+  const [thresholds, setThresholds] = useState<Thresholds>(DEFAULT_THRESHOLDS);
+  const [theme, setTheme] = useState<"light" | "dark">("light");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [payload, setPayload] = useState<SentimentPayload | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [now, setNow] = useState<Date | null>(null);
+  const [timestamp, setTimestamp] = useState<Date | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
+
+  // Load persisted thresholds + theme on mount (client-only).
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Partial<Thresholds>;
+        setThresholds({
+          vix: { ...DEFAULT_THRESHOLDS.vix, ...(parsed.vix ?? {}) },
+          oas: { ...DEFAULT_THRESHOLDS.oas, ...(parsed.oas ?? {}) },
+          fg: { ...DEFAULT_THRESHOLDS.fg, ...(parsed.fg ?? {}) },
+        });
+      }
+      const savedTheme = localStorage.getItem(THEME_KEY);
+      if (savedTheme === "dark" || savedTheme === "light") setTheme(savedTheme);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  // Persist thresholds.
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(thresholds));
+    } catch {
+      /* ignore */
+    }
+  }, [thresholds]);
+
+  // Sync theme attribute + persist.
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    try {
+      localStorage.setItem(THEME_KEY, theme);
+    } catch {
+      /* ignore */
+    }
+  }, [theme]);
 
   const fetchData = useCallback(async () => {
     setRefreshing(true);
@@ -64,7 +104,7 @@ export default function Dashboard() {
       if (!res.ok) throw new Error(`API HTTP ${res.status}`);
       const data = (await res.json()) as SentimentPayload;
       setPayload(data);
-      setNow(new Date());
+      setTimestamp(new Date(data.fetchedAt));
     } catch (err) {
       setFetchError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -72,20 +112,17 @@ export default function Dashboard() {
     }
   }, []);
 
+  // Initial fetch on mount.
   useEffect(() => {
-    // One-shot client fetch on mount. The aggregator route is dynamic and
-    // changes often; Server Components / `use()` would need Suspense plumbing
-    // that doesn't fit the Refresh-button UX.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchData();
   }, [fetchData]);
 
-  // Live clock — single interval started once data arrives.
+  // Live ticking clock on the timestamp pulse.
   useEffect(() => {
-    if (!payload) return;
-    const id = setInterval(() => setNow(new Date()), 1000);
+    if (!timestamp) return;
+    const id = setInterval(() => setTimestamp(new Date()), 1000);
     return () => clearInterval(id);
-  }, [payload]);
+  }, [timestamp == null]);
 
   const vix = payload?.vix;
   const oas = payload?.hyOas;
@@ -103,6 +140,7 @@ export default function Dashboard() {
     ? STATE_RECOMMENDATIONS[conv.state]
     : INDETERMINATE_RECOMMENDATION;
 
+  // Build a single error banner summarising individual reading failures.
   const errors = [
     vix?.error ? `VIX: ${vix.error}` : null,
     oas?.error ? `HY OAS: ${oas.error}` : null,
@@ -113,6 +151,7 @@ export default function Dashboard() {
   return (
     <>
       <div className="shell">
+        {/* Top bar */}
         <div className="topbar">
           <Link href="/sp500" className="topbar-link" title="S&P 500">
             <svg
@@ -122,7 +161,6 @@ export default function Dashboard() {
               strokeWidth="1.6"
               strokeLinecap="round"
               strokeLinejoin="round"
-              aria-hidden="true"
             >
               <path d="M3 17l6-6 4 4 8-8" />
               <path d="M14 7h7v7" />
@@ -132,16 +170,27 @@ export default function Dashboard() {
           <div className="topbar-actions">
             <button
               className="icon-btn"
-              onClick={toggleTheme}
+              onClick={() => setTheme(theme === "light" ? "dark" : "light")}
               title="Thème"
-              aria-label={`Basculer en thème ${theme === "light" ? "sombre" : "clair"}`}
             >
               {theme === "light" ? (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                >
                   <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" />
                 </svg>
               ) : (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                >
                   <circle cx="12" cy="12" r="4" />
                   <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
                 </svg>
@@ -151,9 +200,15 @@ export default function Dashboard() {
               className="icon-btn"
               onClick={() => setSettingsOpen(true)}
               title="Paramètres"
-              aria-label="Ouvrir les paramètres"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <circle cx="12" cy="12" r="3" />
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
               </svg>
@@ -161,19 +216,16 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Error banner */}
         {(fetchError || errors.length > 0) && (
-          <div className="err-banner" role="alert">
+          <div className="err-banner">
             <b>ERR</b>
             {fetchError ?? errors.join(" · ")}
           </div>
         )}
 
-        {/* Global verdict — hero with state-tinted background */}
-        <div
-          className={`verdict-hero${conv.state ? ` tinted w-${conv.state.toLowerCase()}` : ""}`}
-          role="status"
-          aria-live="polite"
-        >
+        {/* Global verdict — hero */}
+        <div className="verdict-hero">
           <div className="verdict" key={finalSentence}>
             <div className="fade-in">
               <h2
@@ -190,19 +242,25 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Header */}
         <div className="header">
           <div className="refresh-block">
             <div className="timestamp">
-              <span className="pulse" aria-hidden="true" />
-              {now ? formatTime(now) : "—"}
+              <span className="pulse" />
+              {timestamp ? formatTime(timestamp) : "—"}
             </div>
             <button
               className={`refresh-btn ${refreshing ? "spin" : ""}`}
               onClick={fetchData}
               disabled={refreshing}
-              aria-label={refreshing ? "Actualisation en cours" : "Actualiser les données"}
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              >
                 <path d="M3 12a9 9 0 0 1 15.5-6.3L21 8" />
                 <path d="M21 3v5h-5" />
                 <path d="M21 12a9 9 0 0 1-15.5 6.3L3 16" />
@@ -213,6 +271,7 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Indicator speedometers — VIX / HY OAS / Fear & Greed */}
         <div className="speedos-row">
           <Speedometer
             name="VIX"
@@ -230,7 +289,6 @@ export default function Dashboard() {
             loading={refreshing && !payload}
             error={vix?.error}
             state={vixState}
-            history={vix?.history}
             compact
           />
           <Speedometer
@@ -250,7 +308,6 @@ export default function Dashboard() {
             loading={refreshing && !payload}
             error={oas?.error}
             state={oasState}
-            history={oas?.history}
             compact
           />
           <Speedometer
@@ -270,11 +327,11 @@ export default function Dashboard() {
             loading={refreshing && !payload}
             error={fg?.error}
             state={fgState}
-            history={fg?.history}
             compact
           />
         </div>
 
+        {/* Market conditions speedometer (NFCI) */}
         <Speedometer
           name="Conditions de marché"
           source={nfci?.source ?? "FRED · NFCI"}
@@ -292,20 +349,8 @@ export default function Dashboard() {
           loading={refreshing && !payload}
           error={nfci?.error}
           state={nfciState}
-          history={nfci?.history}
         />
 
-        {/* States legend */}
-        <div className="states-legend" aria-label="Légende des états">
-          <div className="states-legend-title">États possibles</div>
-          <ul className="states-legend-list">
-            <li><span className="dot w-euphorie" aria-hidden="true" />{STATE_LABELS.EUPHORIE} <em>marché très optimiste, vigilance</em></li>
-            <li><span className="dot w-calme" aria-hidden="true" />{STATE_LABELS.CALME} <em>conditions normales, faible volatilité</em></li>
-            <li><span className="dot w-neutre" aria-hidden="true" />{STATE_LABELS.NEUTRE} <em>aucun signal directionnel</em></li>
-            <li><span className="dot w-stress" aria-hidden="true" />{STATE_LABELS.STRESS} <em>tensions visibles, prudence</em></li>
-            <li><span className="dot w-panique" aria-hidden="true" />{STATE_LABELS.PANIQUE} <em>peur dominante, opportunité</em></li>
-          </ul>
-        </div>
       </div>
 
       <SettingsModal

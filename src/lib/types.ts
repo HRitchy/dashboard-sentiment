@@ -5,7 +5,6 @@ export interface IndicatorReading {
   asOf: string | null; // ISO date
   source: string;
   error?: string;
-  history?: number[]; // recent observations, oldest → newest
 }
 
 export interface SentimentPayload {
