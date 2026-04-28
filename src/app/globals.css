@@ -292,6 +292,20 @@ body {
   text-wrap: balance;
   margin-bottom: 28px;
 }
+.ai-commentary {
+  margin: 0 0 28px;
+  max-width: 64ch;
+  font-size: 14px;
+  font-style: italic;
+  line-height: 1.55;
+  color: var(--ink-2);
+  text-wrap: pretty;
+  min-height: 1.55em;
+}
+.ai-commentary.is-error {
+  color: var(--c-panique);
+  font-style: normal;
+}
 /* ============ SETTINGS MODAL ============ */
 .modal-overlay {
   position: fixed;

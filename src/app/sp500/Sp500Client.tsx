@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useAiStream } from "@/lib/useAiStream";
 import styles from "./page.module.css";
 
 const SYMBOL = "^GSPC";
@@ -659,6 +660,48 @@ export default function Sp500Client() {
 
   const currency = data?.meta.currency || "EUR";
 
+  const aiStats = useMemo(() => {
+    if (!data) return null;
+    const pts = data.points;
+    if (pts.length === 0) return null;
+    const last = pts[pts.length - 1];
+    const ma50 = data.mm50All[data.mm50All.length - 1] ?? null;
+    const ma200 = data.mm200All[data.mm200All.length - 1] ?? null;
+
+    const findOnOrBefore = (target: number): Point | null => {
+      for (let i = pts.length - 1; i >= 0; i--) {
+        if (pts[i].t <= target) return pts[i];
+      }
+      return null;
+    };
+    const pct = (from: Point | null): number | null =>
+      from ? ((last.c - from.c) / from.c) * 100 : null;
+
+    const lastDate = new Date(last.t * 1000);
+    const ytdStart = Math.floor(
+      new Date(lastDate.getFullYear(), 0, 1).getTime() / 1000,
+    );
+    const ytdRef = pts.find((p) => p.t >= ytdStart) ?? null;
+    const oneYearRef = findOnOrBefore(last.t - 365 * 86400);
+    const fiveYearRef = findOnOrBefore(last.t - 5 * 365 * 86400);
+
+    return {
+      lastClose: last.c,
+      lastDate: lastDate.toISOString().slice(0, 10),
+      ma50,
+      ma200,
+      ytdPct: ytdRef ? ((last.c - ytdRef.c) / ytdRef.c) * 100 : null,
+      oneYearPct: pct(oneYearRef),
+      fiveYearPct: pct(fiveYearRef),
+    };
+  }, [data]);
+
+  const aiBody = useMemo(
+    () => (aiStats ? { stats: aiStats } : null),
+    [aiStats],
+  );
+  const ai = useAiStream("/api/ai/sp500", aiBody);
+
   return (
     <div className={styles.page}>
       <div className={styles.shell}>
@@ -761,6 +804,14 @@ export default function Sp500Client() {
                 <b>52s bas</b>
                 <span className={styles.mono}>{fmtPrice(stats.low52)}</span>
               </span>
+            </div>
+
+            <div
+              className={`${styles.aiPanel}${ai.error ? ` ${styles.aiError}` : ""}`}
+            >
+              {ai.error
+                ? `Analyse IA indisponible : ${ai.error}`
+                : ai.text || (ai.loading ? "Analyse IA en cours…" : "")}
             </div>
 
             <div className={styles.chartCard}>
