@@ -273,16 +273,14 @@
   opacity: 0.04;
 }
 
-.crosshairV,
-.crosshairH {
+.crosshairV {
   stroke: var(--ink-3);
   stroke-width: 1;
   stroke-dasharray: 2 3;
   opacity: 0;
   pointer-events: none;
 }
-.crosshairV.on,
-.crosshairH.on {
+.crosshairV.on {
   opacity: 0.6;
 }
 .hoverDot {

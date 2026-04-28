@@ -1,10 +1,7 @@
 "use client";
 
-import { useId } from "react";
 import type { SentimentState } from "@/lib/types";
 import { STATE_LABELS } from "@/lib/classify";
-import { useCountUp } from "@/lib/use-count-up";
-import Sparkline from "./Sparkline";
 
 export interface SpeedoZone {
   from: number;
@@ -23,7 +20,6 @@ interface Props {
   loading?: boolean;
   error?: string;
   state?: SentimentState | null;
-  history?: number[];
   formatValue?: (v: number) => string;
   formatTick?: (v: number) => string;
   compact?: boolean;
@@ -32,17 +28,18 @@ interface Props {
 // Geometry — semi-circle gauge, min on the left, max on the right.
 const R = 130; // arc radius (center of the stroke)
 const STROKE = 26;
-const LABEL_OFFSET = 16;
+const LABEL_OFFSET = 16; // distance from arc to tick label
 const LABEL_EXTENT = R + STROKE / 2 + LABEL_OFFSET; // 159
-const MARGIN = 12;
+const MARGIN = 12; // viewBox margin beyond labels
 const CX = LABEL_EXTENT + MARGIN;
 const CY = LABEL_EXTENT + MARGIN;
 const VIEW_W = CX * 2;
-const VIEW_H = CY + 24;
+const VIEW_H = CY + 24; // small strip below the diameter
 
 function valueToAngle(v: number, min: number, max: number): number {
   const clamped = Math.min(max, Math.max(min, v));
-  const t = (clamped - min) / (max - min);
+  const t = (clamped - min) / (max - min); // 0..1
+  // -180° (left) → 0° (right). 0° points right in SVG.
   return -180 + t * 180;
 }
 
@@ -69,13 +66,11 @@ export default function Speedometer({
   loading,
   error,
   state,
-  history,
   formatValue,
   formatTick,
   compact,
 }: Props) {
   const { min, max } = range;
-  const gradId = useId().replace(/:/g, "-") + "-grad";
 
   const segs = zones.map((z) => ({
     from: valueToAngle(z.from, min, max),
@@ -83,44 +78,16 @@ export default function Speedometer({
     cls: z.cls,
   }));
 
-  // Map zone css classes → CSS variable colors for a continuous gradient.
-  const zoneVar: Record<string, string> = {
-    "seg-euphorie": "var(--c-euphorie)",
-    "seg-calme": "var(--c-calme)",
-    "seg-neutre": "var(--ink-3)",
-    "seg-stress": "var(--c-stress)",
-    "seg-panique": "var(--c-panique)",
-  };
-  const stops = zones.flatMap((z) => {
-    const a = (z.from - min) / (max - min);
-    const b = (z.to - min) / (max - min);
-    const color = zoneVar[z.cls] ?? "var(--ink-3)";
-    return [
-      { offset: a, color },
-      { offset: b, color },
-    ];
-  });
-
-  const animatedValue = useCountUp(value);
   const needleAngle = value == null ? null : valueToAngle(value, min, max);
 
-  const displayNumber = animatedValue ?? value;
   const displayValue =
-    displayNumber == null
-      ? "—"
-      : formatValue
-        ? formatValue(displayNumber)
-        : String(displayNumber);
+    value == null ? "—" : formatValue ? formatValue(value) : String(value);
   const displayTick = formatTick ?? ((v: number) => String(v));
-
-  const isSkeleton = loading && value == null;
 
   return (
     <div
-      className={`speedo fade-in${compact ? " speedo-compact" : ""}${
-        isSkeleton ? " speedo-skeleton" : ""
-      }`}
-      aria-busy={loading || undefined}
+      className={`speedo fade-in${compact ? " speedo-compact" : ""}`}
+      style={{ opacity: loading && value == null ? 0.4 : 1 }}
     >
       <div className="speedo-head">
         <span className="speedo-name">{name}</span>
@@ -131,20 +98,8 @@ export default function Speedometer({
         <svg
           viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
           role="img"
-          aria-label={`${name} ${displayValue}${state ? ` · ${STATE_LABELS[state]}` : ""}`}
+          aria-label={`${name} ${displayValue}`}
         >
-          <defs>
-            <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="0">
-              {stops.map((s, i) => (
-                <stop
-                  key={i}
-                  offset={`${(s.offset * 100).toFixed(2)}%`}
-                  stopColor={s.color}
-                />
-              ))}
-            </linearGradient>
-          </defs>
-
           {/* Track background */}
           <path
             d={arcPath(R, -180, 0)}
@@ -154,33 +109,17 @@ export default function Speedometer({
             strokeLinecap="butt"
           />
 
-          {/* Continuous gradient arc */}
-          <path
-            d={arcPath(R, -180, 0)}
-            fill="none"
-            stroke={`url(#${gradId})`}
-            strokeWidth={STROKE}
-            strokeLinecap="butt"
-          />
-
-          {/* Subtle zone separators (no jarring color blocks) */}
-          {segs.slice(0, -1).map((s, i) => {
-            const a = s.to;
-            const outer = polar(CX, CY, R + STROKE / 2, a);
-            const inner = polar(CX, CY, R - STROKE / 2, a);
-            return (
-              <line
-                key={i}
-                x1={outer.x}
-                y1={outer.y}
-                x2={inner.x}
-                y2={inner.y}
-                stroke="var(--bg)"
-                strokeWidth={1}
-                opacity="0.5"
-              />
-            );
-          })}
+          {/* Colored zones */}
+          {segs.map((s, i) => (
+            <path
+              key={i}
+              className={`speedo-seg ${s.cls}`}
+              d={arcPath(R, s.from, s.to)}
+              fill="none"
+              strokeWidth={STROKE}
+              strokeLinecap="butt"
+            />
+          ))}
 
           {/* Ticks + numeric labels */}
           {ticks.map((t) => {
@@ -235,21 +174,11 @@ export default function Speedometer({
         <div className="speedo-readout">
           <div className="speedo-value">{displayValue}</div>
           {state ? (
-            <div
-              className={`speedo-state w-${state.toLowerCase()}`}
-              aria-live="polite"
-            >
+            <div className={`speedo-state w-${state.toLowerCase()}`}>
               {STATE_LABELS[state]}
             </div>
           ) : value != null ? (
             <div className="speedo-state speedo-state-empty">—</div>
-          ) : null}
-          {history && history.length > 1 ? (
-            <div
-              className={`speedo-spark${state ? ` w-${state.toLowerCase()}` : ""}`}
-            >
-              <Sparkline values={history} width={140} height={28} />
-            </div>
           ) : null}
         </div>
       </div>
