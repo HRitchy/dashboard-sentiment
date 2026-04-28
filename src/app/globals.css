@@ -244,7 +244,18 @@ body {
 }
 
 /* ============ GLOBAL VERDICT ============ */
-.verdict-hero { margin-bottom: 40px; }
+.verdict-hero {
+  margin-bottom: 40px;
+  padding: 48px 56px;
+  border-radius: 4px;
+  background: var(--panel);
+  transition: background 0.4s ease;
+}
+.verdict-hero.panel-euphorie { background: color-mix(in oklch, var(--c-euphorie) 12%, var(--bg)); }
+.verdict-hero.panel-calme    { background: color-mix(in oklch, var(--c-calme) 14%, var(--bg)); }
+.verdict-hero.panel-neutre   { background: var(--panel); }
+.verdict-hero.panel-stress   { background: color-mix(in oklch, var(--c-stress) 12%, var(--bg)); }
+.verdict-hero.panel-panique  { background: color-mix(in oklch, var(--c-panique) 12%, var(--bg)); }
 
 .verdict {
   display: grid;
@@ -688,6 +699,7 @@ body {
   .header { justify-content: flex-start; }
   .verdict { grid-template-columns: 1fr; }
   .verdict-title { font-size: 48px; }
+  .verdict-hero { padding: 32px 24px; }
 }
 @media (max-width: 720px) {
   .modal-head, .modal-body, .modal-foot { padding-left: 24px; padding-right: 24px; }
