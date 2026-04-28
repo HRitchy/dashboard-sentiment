@@ -136,6 +136,24 @@
   font-size: 12.5px;
 }
 
+.aiPanel {
+  border-left: 2px solid var(--ink-2);
+  padding: 8px 14px;
+  margin-bottom: 24px;
+  font-size: 14px;
+  font-style: italic;
+  line-height: 1.55;
+  color: var(--ink-2);
+  max-width: 72ch;
+  text-wrap: pretty;
+  min-height: 1.55em;
+}
+.aiPanel.aiError {
+  border-left-color: var(--c-panique);
+  color: var(--c-panique);
+  font-style: normal;
+}
+
 .chartCard {
   border: 1px solid var(--line);
   padding: 28px 28px 18px;

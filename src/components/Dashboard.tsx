@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   DEFAULT_THRESHOLDS,
   NFCI_RANGE,
@@ -19,6 +19,7 @@ import {
   STATE_RECOMMENDATIONS,
   STATE_SENTENCES,
 } from "@/lib/classify";
+import { useAiStream } from "@/lib/useAiStream";
 import SettingsModal from "./SettingsModal";
 import Speedometer, { type SpeedoZone } from "./Speedometer";
 
@@ -140,6 +141,12 @@ export default function Dashboard() {
     ? STATE_RECOMMENDATIONS[conv.state]
     : INDETERMINATE_RECOMMENDATION;
 
+  const aiBody = useMemo(
+    () => (payload ? { payload, thresholds } : null),
+    [payload, thresholds],
+  );
+  const ai = useAiStream("/api/ai/verdict", aiBody);
+
   // Build a single error banner summarising individual reading failures.
   const errors = [
     vix?.error ? `VIX: ${vix.error}` : null,
@@ -246,6 +253,13 @@ export default function Dashboard() {
               >
                 <span className="sig-label">{recommendation}</span>
               </div>
+              {payload && (
+                <p className={`ai-commentary${ai.error ? " is-error" : ""}`}>
+                  {ai.error
+                    ? `Analyse IA indisponible : ${ai.error}`
+                    : ai.text || (ai.loading ? "Analyse IA en cours…" : "")}
+                </p>
+              )}
             </div>
           </div>
         </div>
