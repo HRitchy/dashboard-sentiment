@@ -163,7 +163,10 @@ export default function Dashboard() {
     () => (payload && apiKeyLoaded ? { payload, thresholds } : null),
     [payload, thresholds, apiKeyLoaded],
   );
-  const ai = useAiStream("/api/ai/verdict", aiBody, { apiKey });
+  const ai = useAiStream("/api/ai/verdict", aiBody, {
+    apiKey,
+    dailyCacheKey: "dashboard-ai-verdict",
+  });
 
   const aiBulletins = useMemo(() => {
     if (!ai.text) return [] as string[];
