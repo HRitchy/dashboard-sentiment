@@ -9,11 +9,13 @@ export function streamText({
   user,
   maxTokens = 1024,
   apiKey,
+  tools,
 }: {
   system: string;
   user: string;
   maxTokens?: number;
   apiKey?: string;
+  tools?: Anthropic.Messages.MessageCreateParams["tools"];
 }): ReadableStream<Uint8Array> {
   const client = apiKey ? new Anthropic({ apiKey }) : new Anthropic();
   const stream = client.messages.stream({
@@ -21,6 +23,7 @@ export function streamText({
     max_tokens: maxTokens,
     system,
     messages: [{ role: "user", content: user }],
+    ...(tools ? { tools } : {}),
   });
 
   return new ReadableStream<Uint8Array>({

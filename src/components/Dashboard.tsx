@@ -35,7 +35,7 @@ const FG_TICKS = [0, 25, 50, 75, 100];
 const NFCI_TICKS = [-2, -1, 0, 1, 2, 3, 4];
 
 function nfciValue(v: number): string {
-  return (v >= 0 ? "+" : "") + String(v);
+  return (v >= 0 ? "+" : "") + v.toFixed(3);
 }
 
 function formatTime(d: Date): string {
