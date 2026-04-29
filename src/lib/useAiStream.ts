@@ -6,6 +6,8 @@ interface AiStreamState {
   text: string;
   loading: boolean;
   error: string | null;
+  generatedAt: string | null;
+  cacheHit: boolean | null;
 }
 
 interface AiStreamOptions {
@@ -29,6 +31,8 @@ export function useAiStream<TBody>(
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [generatedAt, setGeneratedAt] = useState<string | null>(null);
+  const [cacheHit, setCacheHit] = useState<boolean | null>(null);
   const [lastKey, setLastKey] = useState<string | null>(null);
 
   // React-recommended pattern for resetting state when an input changes:
@@ -37,6 +41,8 @@ export function useAiStream<TBody>(
     setLastKey(cacheKey);
     setText("");
     setError(null);
+    setGeneratedAt(null);
+    setCacheHit(null);
     setLoading(cacheKey != null);
   }
 
@@ -69,6 +75,9 @@ export function useAiStream<TBody>(
           }
           throw new Error(message);
         }
+        setGeneratedAt(res.headers.get("x-ai-generated-at"));
+        const cacheHeader = res.headers.get("x-ai-cache-hit");
+        setCacheHit(cacheHeader == null ? null : cacheHeader === "true");
 
         if (!res.body) throw new Error("Réponse sans corps.");
 
@@ -94,5 +103,5 @@ export function useAiStream<TBody>(
     return () => controller.abort();
   }, [url, bodyKey, trimmedKey]);
 
-  return { text, loading, error };
+  return { text, loading, error, generatedAt, cacheHit };
 }

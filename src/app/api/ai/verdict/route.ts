@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { streamText } from "@/lib/claude";
+import { MODEL } from "@/lib/claude";
+import { cached } from "@/lib/server-cache";
 import { DEFAULT_THRESHOLDS, type SentimentPayload, type Thresholds } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +13,8 @@ Tu disposes de l'outil web_search : utilise-le systématiquement (1 à 2 requêt
 À partir de l'actualité boursière mondiale, écris exactement une phrases qui résume la tendance des marchés mondiaux d'après les actualités récentes (haussière, baissière, mitigée…) et cite éventuellement un fait marquant.
 
 Contraintes : pas de listes, pas de markdown, pas de titres, pas de disclaimer, pas d'émoji, pas de mention de l'IA ni des sources, aucune recommandation d'allocation ni pourcentage d'exposition actions. Reste neutre et professionnel. Maximum 70 mots au total.`;
+const PROMPT_VERSION = "v1";
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 function fmtNum(v: number | null | undefined, digits = 2): string {
   if (v == null || Number.isNaN(v)) return "indisponible";
@@ -36,6 +39,28 @@ interface RequestBody {
   thresholds?: Thresholds;
 }
 
+interface CachedVerdict {
+  text: string;
+  generatedAt: string;
+}
+
+function utcDayKey(date = new Date()): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function msUntilNextUtcMidnight(date = new Date()): number {
+  const nextMidnight = Date.UTC(
+    date.getUTCFullYear(),
+    date.getUTCMonth(),
+    date.getUTCDate() + 1,
+    0,
+    0,
+    0,
+    0,
+  );
+  return Math.max(1_000, nextMidnight - date.getTime());
+}
+
 export async function POST(req: Request): Promise<Response> {
   let body: RequestBody;
   try {
@@ -50,26 +75,48 @@ export async function POST(req: Request): Promise<Response> {
 
   const thresholds = body.thresholds ?? DEFAULT_THRESHOLDS;
   const apiKey = req.headers.get("x-anthropic-api-key")?.trim() || undefined;
+  const userPrompt = buildUserPrompt(body.payload, thresholds);
+  const dayKey = utcDayKey();
+  const thresholdKey = JSON.stringify(thresholds);
+  const cacheKey = `ai:verdict:${PROMPT_VERSION}:${dayKey}:${thresholdKey}`;
+  const now = new Date().toISOString();
 
   try {
-    const stream = streamText({
-      system: SYSTEM_PROMPT,
-      user: buildUserPrompt(body.payload, thresholds),
-      maxTokens: 1024,
-      apiKey,
-      tools: [
-        {
-          type: "web_search_20250305",
-          name: "web_search",
-          max_uses: 2,
-        },
-      ],
-    });
+    let cacheHit = true;
+    const verdict = await cached<CachedVerdict>(
+      cacheKey,
+      Math.min(DAY_MS, msUntilNextUtcMidnight()),
+      async () => {
+        cacheHit = false;
+        const client = apiKey ? new Anthropic({ apiKey }) : new Anthropic();
+        const resp = await client.messages.create({
+          model: MODEL,
+          max_tokens: 1024,
+          system: SYSTEM_PROMPT,
+          messages: [{ role: "user", content: userPrompt }],
+          tools: [
+            {
+              type: "web_search_20250305",
+              name: "web_search",
+              max_uses: 2,
+            },
+          ],
+        });
+        const text = resp.content
+          .filter((c) => c.type === "text")
+          .map((c) => c.text)
+          .join("")
+          .trim();
+        return { text, generatedAt: now };
+      },
+    );
 
-    return new Response(stream, {
+    return new Response(verdict.text, {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
         "Cache-Control": "no-store",
+        "x-ai-generated-at": verdict.generatedAt,
+        "x-ai-cache-hit": String(cacheHit),
       },
     });
   } catch (err) {

@@ -282,19 +282,25 @@ export default function Dashboard() {
                 <span className="sig-label">{recommendation}</span>
               </div>
               {payload && (
-                <div className={`ai-commentary${ai.error ? " is-error" : ""}`}>
-                  {ai.error ? (
-                    <p>{`Analyse IA indisponible : ${ai.error}`}</p>
-                  ) : aiBulletins.length > 0 ? (
-                    <ul>
-                      {aiBulletins.map((item, idx) => (
-                        <li key={`${idx}-${item.slice(0, 24)}`}>{item}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p>{ai.text || (ai.loading ? "Analyse IA en cours…" : "")}</p>
-                  )}
-                </div>
+<div className={`ai-commentary${ai.error ? " is-error" : ""}`}>
+  {ai.error ? (
+    <p>{`Analyse IA indisponible : ${ai.error}`}</p>
+  ) : aiBulletins.length > 0 ? (
+    <ul>
+      {aiBulletins.map((item, idx) => (
+        <li key={`${idx}-${item.slice(0, 24)}`}>{item}</li>
+      ))}
+    </ul>
+  ) : (
+    <p>{ai.text || (ai.loading ? "Analyse IA en cours…" : "")}</p>
+  )}
+</div>
+{(ai.generatedAt || ai.cacheHit != null) && (
+  <p className="muted">
+    IA · généré {ai.generatedAt ? new Date(ai.generatedAt).toUTCString() : "—"} · cache{" "}
+    {ai.cacheHit ? "HIT" : "MISS"}
+  </p>
+)} master
               )}
             </div>
           </div>
