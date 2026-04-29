@@ -707,7 +707,10 @@ export default function Sp500Client() {
     () => (aiStats && apiKeyLoaded ? { stats: aiStats } : null),
     [aiStats, apiKeyLoaded],
   );
-  const ai = useAiStream("/api/ai/sp500", aiBody, { apiKey });
+  const ai = useAiStream("/api/ai/sp500", aiBody, {
+    apiKey,
+    dailyCacheKey: "sp500-ai-analysis",
+  });
 
   return (
     <div className={styles.page}>
