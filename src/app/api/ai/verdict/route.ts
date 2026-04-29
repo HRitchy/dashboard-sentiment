@@ -7,11 +7,13 @@ export const revalidate = 0;
 
 const SYSTEM_PROMPT = `Tu es un assistant financier sobre et factuel, qui s'adresse en français à un investisseur particulier suivant un dashboard de sentiment de marché.
 
-À partir des valeurs courantes des indicateurs (VIX, HY OAS, Fear & Greed, NFCI) et des seuils choisis par l'utilisateur, écris exactement deux phrases courtes :
-1. La première décrit l'état du marché en intégrant les valeurs précises et la convergence (ou divergence) des indicateurs.
-2. La seconde donne une recommandation d'allocation actions concrète (par exemple un pourcentage cible) cohérente avec ces valeurs et avec les seuils.
+Tu disposes de l'outil web_search : utilise-le systématiquement (1 à 2 requêtes) pour récupérer l'actualité récente de la bourse mondiale (États-Unis, Europe, Asie) avant de répondre, afin de dégager la tendance dominante des dernières séances.
 
-Contraintes : pas de listes, pas de markdown, pas de titres, pas de disclaimer, pas d'émoji, pas de mention de l'IA. Reste neutre et professionnel. Maximum 60 mots au total.`;
+À partir des valeurs courantes des indicateurs (VIX, HY OAS, Fear & Greed, NFCI), des seuils utilisateur et de l'actualité boursière mondiale, écris exactement deux phrases courtes :
+1. La première décrit l'état du marché en intégrant les valeurs précises et la convergence (ou divergence) des indicateurs ; reprends la valeur du NFCI exactement comme fournie, avec ses trois décimales, sans arrondi.
+2. La seconde résume la tendance des marchés mondiaux d'après les actualités récentes (haussière, baissière, mitigée…) et cite éventuellement un fait marquant.
+
+Contraintes : pas de listes, pas de markdown, pas de titres, pas de disclaimer, pas d'émoji, pas de mention de l'IA ni des sources, aucune recommandation d'allocation ni pourcentage d'exposition actions. Reste neutre et professionnel. Maximum 70 mots au total.`;
 
 function fmtNum(v: number | null | undefined, digits = 2): string {
   if (v == null || Number.isNaN(v)) return "indisponible";
@@ -25,7 +27,7 @@ function buildUserPrompt(payload: SentimentPayload, thresholds: Thresholds): str
     `- VIX = ${fmtNum(vix.value, 2)} (seuils utilisateur : euphorie<${thresholds.vix.euphorie}, calme≤${thresholds.vix.calme}, stress≤${thresholds.vix.stress}, panique au-dessus).`,
     `- HY OAS = ${fmtNum(hyOas.value, 2)}% (seuils : euphorie<${thresholds.oas.euphorie}, calme≤${thresholds.oas.calme}, stress≤${thresholds.oas.stress}, panique au-dessus)${hyOas.asOf ? `, donnée du ${hyOas.asOf}` : ""}.`,
     `- Fear & Greed = ${fmtNum(fearGreed.value, 0)}/100 (seuils : panique<${thresholds.fg.panique}, stress<${thresholds.fg.stress}, neutre<${thresholds.fg.neutre}, calme<${thresholds.fg.calme}, euphorie au-dessus).`,
-    `- NFCI = ${fmtNum(nfci.value, 2)}${nfci.asOf ? `, donnée du ${nfci.asOf}` : ""} (négatif = conditions accommodantes, positif = conditions tendues).`,
+    `- NFCI = ${fmtNum(nfci.value, 3)}${nfci.asOf ? `, donnée du ${nfci.asOf}` : ""} (négatif = conditions accommodantes, positif = conditions tendues). Reprends ce chiffre tel quel, avec ses trois décimales.`,
     ``,
     `Rédige les deux phrases demandées.`,
   ].join("\n");
@@ -55,8 +57,15 @@ export async function POST(req: Request): Promise<Response> {
     const stream = streamText({
       system: SYSTEM_PROMPT,
       user: buildUserPrompt(body.payload, thresholds),
-      maxTokens: 256,
+      maxTokens: 1024,
       apiKey,
+      tools: [
+        {
+          type: "web_search_20250305",
+          name: "web_search",
+          max_uses: 2,
+        },
+      ],
     });
 
     return new Response(stream, {
