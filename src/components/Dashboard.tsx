@@ -17,7 +17,7 @@ import {
   convergence,
   STATE_SENTENCES,
 } from "@/lib/classify";
-import { useAiStream } from "@/lib/useAiStream";
+import { useAiBulletin } from "@/lib/useAiBulletin";
 import SettingsModal from "./SettingsModal";
 import Speedometer, { type SpeedoZone } from "./Speedometer";
 
@@ -34,6 +34,14 @@ const NFCI_TICKS = [-2, -1, 0, 1, 2, 3, 4];
 
 function nfciValue(v: number): string {
   return (v >= 0 ? "+" : "") + v.toFixed(3);
+}
+
+function hostname(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
 }
 
 function formatTime(d: Date): string {
@@ -157,10 +165,11 @@ export default function Dashboard() {
     () => (apiKeyLoaded ? {} : null),
     [apiKeyLoaded],
   );
-  const ai = useAiStream("/api/ai/verdict", aiBody, {
+  const ai = useAiBulletin("/api/ai/verdict", aiBody, {
     apiKey,
     dailyCacheKey: "dashboard-ai-verdict",
   });
+  const aiHasContent = ai.headline.length > 0 || ai.bullets.length > 0;
 
   // Build a single error banner summarising individual reading failures.
   const errors = [
@@ -264,9 +273,39 @@ export default function Dashboard() {
               {payload && (
                 <div className={`ai-commentary${ai.error ? " is-error" : ""}`}>
                   {ai.error ? (
-                    <p>{`Analyse IA indisponible : ${ai.error}`}</p>
+                    <p className="ai-headline">{`Analyse IA indisponible : ${ai.error}`}</p>
                   ) : (
-                    <p>{ai.text || (ai.loading ? "Analyse IA en cours…" : "")}</p>
+                    <>
+                      <p className="ai-headline">
+                        {ai.headline ||
+                          (ai.loading && !aiHasContent ? "Analyse IA en cours…" : "")}
+                      </p>
+                      {ai.bullets.length > 0 && (
+                        <ul className="ai-bullets">
+                          {ai.bullets.map((b, i) => (
+                            <li key={i}>{b}</li>
+                          ))}
+                        </ul>
+                      )}
+                      {ai.sources.length > 0 && (
+                        <p className="ai-sources">
+                          Sources :{" "}
+                          {ai.sources.map((s, i) => (
+                            <span key={s.url}>
+                              {i > 0 && " · "}
+                              <a
+                                href={s.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title={s.title}
+                              >
+                                {hostname(s.url)}
+                              </a>
+                            </span>
+                          ))}
+                        </p>
+                      )}
+                    </>
                   )}
                   <button
                     className={`refresh-btn ai-refresh-btn ${ai.loading ? "spin" : ""}`}
