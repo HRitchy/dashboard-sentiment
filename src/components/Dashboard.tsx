@@ -272,11 +272,19 @@ export default function Dashboard() {
                 <span className="sig-label">{recommendation}</span>
               </div>
               {payload && (
-                <p className={`ai-commentary${ai.error ? " is-error" : ""}`}>
-                  {ai.error
-                    ? `Analyse IA indisponible : ${ai.error}`
-                    : ai.text || (ai.loading ? "Analyse IA en cours…" : "")}
-                </p>
+                <>
+                  <p className={`ai-commentary${ai.error ? " is-error" : ""}`}>
+                    {ai.error
+                      ? `Analyse IA indisponible : ${ai.error}`
+                      : ai.text || (ai.loading ? "Analyse IA en cours…" : "")}
+                  </p>
+                  {(ai.generatedAt || ai.cacheHit != null) && (
+                    <p className="muted">
+                      IA · généré {ai.generatedAt ? new Date(ai.generatedAt).toUTCString() : "—"} ·
+                      cache {ai.cacheHit ? "HIT" : "MISS"}
+                    </p>
+                  )}
+                </>
               )}
             </div>
           </div>
