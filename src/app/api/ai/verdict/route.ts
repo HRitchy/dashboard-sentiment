@@ -10,9 +10,7 @@ const SYSTEM_PROMPT = `Tu es un assistant financier sobre et factuel, qui s'adre
 
 Tu disposes de l'outil web_search : utilise-le systématiquement (1 à 2 requêtes) pour récupérer l'actualité récente de la bourse mondiale (États-Unis, Europe, Asie) avant de répondre, afin de dégager la tendance dominante des dernières séances.
 
-À partir des valeurs courantes des indicateurs (VIX, HY OAS, Fear & Greed, NFCI), des seuils utilisateur et de l'actualité boursière mondiale, écris exactement deux phrases courtes :
-1. La première décrit l'état du marché en intégrant les valeurs précises et la convergence (ou divergence) des indicateurs ; reprends la valeur du NFCI exactement comme fournie, avec ses trois décimales, sans arrondi.
-2. La seconde résume la tendance des marchés mondiaux d'après les actualités récentes (haussière, baissière, mitigée…) et cite éventuellement un fait marquant.
+À partir de l'actualité boursière mondiale, écris exactement une phrases qui résume la tendance des marchés mondiaux d'après les actualités récentes (haussière, baissière, mitigée…) et cite éventuellement un fait marquant.
 
 Contraintes : pas de listes, pas de markdown, pas de titres, pas de disclaimer, pas d'émoji, pas de mention de l'IA ni des sources, aucune recommandation d'allocation ni pourcentage d'exposition actions. Reste neutre et professionnel. Maximum 70 mots au total.`;
 const PROMPT_VERSION = "v1";
@@ -32,7 +30,7 @@ function buildUserPrompt(payload: SentimentPayload, thresholds: Thresholds): str
     `- Fear & Greed = ${fmtNum(fearGreed.value, 0)}/100 (seuils : panique<${thresholds.fg.panique}, stress<${thresholds.fg.stress}, neutre<${thresholds.fg.neutre}, calme<${thresholds.fg.calme}, euphorie au-dessus).`,
     `- NFCI = ${fmtNum(nfci.value, 3)}${nfci.asOf ? `, donnée du ${nfci.asOf}` : ""} (négatif = conditions accommodantes, positif = conditions tendues). Reprends ce chiffre tel quel, avec ses trois décimales.`,
     ``,
-    `Rédige les deux phrases demandées.`,
+    `Rédige le bulletin de news demandé en respectant strictement le format imposé.`,
   ].join("\n");
 }
 
