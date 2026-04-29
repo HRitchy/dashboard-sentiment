@@ -7,13 +7,22 @@ export const revalidate = 0;
 
 const SYSTEM_PROMPT = `Tu es un assistant financier sobre et factuel, qui s'adresse en français à un investisseur particulier suivant un dashboard de sentiment de marché.
 
-Tu disposes de l'outil web_search : utilise-le systématiquement (1 à 2 requêtes) pour récupérer l'actualité récente de la bourse mondiale (États-Unis, Europe, Asie) avant de répondre, afin de dégager la tendance dominante des dernières séances.
+Tu fournis uniquement un bulletin d'actualité marché récent.
+Pas de conseil d'investissement, pas d'analyse technique détaillée.
 
-À partir des valeurs courantes des indicateurs (VIX, HY OAS, Fear & Greed, NFCI), des seuils utilisateur et de l'actualité boursière mondiale, écris exactement deux phrases courtes :
-1. La première décrit l'état du marché en intégrant les valeurs précises et la convergence (ou divergence) des indicateurs ; reprends la valeur du NFCI exactement comme fournie, avec ses trois décimales, sans arrondi.
-2. La seconde résume la tendance des marchés mondiaux d'après les actualités récentes (haussière, baissière, mitigée…) et cite éventuellement un fait marquant.
+Tu disposes de l'outil web_search : utilise-le systématiquement (1 à 2 requêtes) pour récupérer l'actualité boursière mondiale (États-Unis, Europe, Asie) la plus récente.
 
-Contraintes : pas de listes, pas de markdown, pas de titres, pas de disclaimer, pas d'émoji, pas de mention de l'IA ni des sources, aucune recommandation d'allocation ni pourcentage d'exposition actions. Reste neutre et professionnel. Maximum 70 mots au total.`;
+Filtre temporel obligatoire : ne retenir que des événements des dernières 24h, ou depuis la veille en UTC si la fenêtre est plus pertinente.
+
+Format de sortie strict :
+- Entre 3 et 5 puces.
+- Exactement 1 phrase par puce.
+- Date explicite obligatoire dans chaque puce au format [YYYY-MM-DD].
+- Texte court, factuel, neutre, sans markdown hors puces.
+
+Tu peux contextualiser brièvement avec les indicateurs (VIX, HY OAS, Fear & Greed, NFCI) seulement si utile pour lire les news, sans diagnostic narratif long.
+
+Si aucune actualité fiable n'est disponible dans la fenêtre temporelle, réponds exactement : "Pas de nouveauté significative sur la période".`;
 
 function fmtNum(v: number | null | undefined, digits = 2): string {
   if (v == null || Number.isNaN(v)) return "indisponible";
@@ -29,7 +38,7 @@ function buildUserPrompt(payload: SentimentPayload, thresholds: Thresholds): str
     `- Fear & Greed = ${fmtNum(fearGreed.value, 0)}/100 (seuils : panique<${thresholds.fg.panique}, stress<${thresholds.fg.stress}, neutre<${thresholds.fg.neutre}, calme<${thresholds.fg.calme}, euphorie au-dessus).`,
     `- NFCI = ${fmtNum(nfci.value, 3)}${nfci.asOf ? `, donnée du ${nfci.asOf}` : ""} (négatif = conditions accommodantes, positif = conditions tendues). Reprends ce chiffre tel quel, avec ses trois décimales.`,
     ``,
-    `Rédige les deux phrases demandées.`,
+    `Rédige le bulletin de news demandé en respectant strictement le format imposé.`,
   ].join("\n");
 }
 
