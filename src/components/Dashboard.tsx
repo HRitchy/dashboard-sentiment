@@ -165,6 +165,16 @@ export default function Dashboard() {
   );
   const ai = useAiStream("/api/ai/verdict", aiBody, { apiKey });
 
+  const aiBulletins = useMemo(() => {
+    if (!ai.text) return [] as string[];
+    return ai.text
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => /^[-•]\s+/.test(line))
+      .map((line) => line.replace(/^[-•]\s+/, "").trim())
+      .filter(Boolean);
+  }, [ai.text]);
+
   // Build a single error banner summarising individual reading failures.
   const errors = [
     vix?.error ? `VIX: ${vix.error}` : null,
@@ -272,11 +282,19 @@ export default function Dashboard() {
                 <span className="sig-label">{recommendation}</span>
               </div>
               {payload && (
-                <p className={`ai-commentary${ai.error ? " is-error" : ""}`}>
-                  {ai.error
-                    ? `Analyse IA indisponible : ${ai.error}`
-                    : ai.text || (ai.loading ? "Analyse IA en cours…" : "")}
-                </p>
+                <div className={`ai-commentary${ai.error ? " is-error" : ""}`}>
+                  {ai.error ? (
+                    <p>{`Analyse IA indisponible : ${ai.error}`}</p>
+                  ) : aiBulletins.length > 0 ? (
+                    <ul>
+                      {aiBulletins.map((item, idx) => (
+                        <li key={`${idx}-${item.slice(0, 24)}`}>{item}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p>{ai.text || (ai.loading ? "Analyse IA en cours…" : "")}</p>
+                  )}
+                </div>
               )}
             </div>
           </div>
