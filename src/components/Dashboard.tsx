@@ -281,6 +281,26 @@ export default function Dashboard() {
                   ) : (
                     <p>{ai.text || (ai.loading ? "Analyse IA en cours…" : "")}</p>
                   )}
+                  <button
+                    className={`refresh-btn ai-refresh-btn ${ai.loading ? "spin" : ""}`}
+                    onClick={ai.refresh}
+                    disabled={ai.loading}
+                    title="Rafraîchir l'analyse IA"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    >
+                      <path d="M3 12a9 9 0 0 1 15.5-6.3L21 8" />
+                      <path d="M21 3v5h-5" />
+                      <path d="M21 12a9 9 0 0 1-15.5 6.3L3 16" />
+                      <path d="M3 21v-5h5" />
+                    </svg>
+                    {ai.loading ? "Actualisation IA" : "Rafraîchir l'IA"}
+                  </button>
                 </div>
               )}
             </div>
