@@ -15,8 +15,6 @@ import {
   classifyNfci,
   classifyVix,
   convergence,
-  INDETERMINATE_RECOMMENDATION,
-  STATE_RECOMMENDATIONS,
   STATE_SENTENCES,
 } from "@/lib/classify";
 import { useAiStream } from "@/lib/useAiStream";
@@ -155,10 +153,6 @@ export default function Dashboard() {
 
   const conv = convergence([vixState, oasState, fgState]);
   const finalSentence = conv.state ? STATE_SENTENCES[conv.state] : "État indéterminé.";
-  const recommendation = conv.state
-    ? STATE_RECOMMENDATIONS[conv.state]
-    : INDETERMINATE_RECOMMENDATION;
-
   const aiBody = useMemo(
     () => (apiKeyLoaded ? {} : null),
     [apiKeyLoaded],
@@ -267,13 +261,6 @@ export default function Dashboard() {
               >
                 {conv.state ? finalSentence : <em>{finalSentence}</em>}
               </h2>
-              <div
-                className={`verdict-signal ${
-                  conv.state ? `w-${conv.state.toLowerCase()}` : ""
-                }`}
-              >
-                <span className="sig-label">{recommendation}</span>
-              </div>
               {payload && (
                 <div className={`ai-commentary${ai.error ? " is-error" : ""}`}>
                   {ai.error ? (

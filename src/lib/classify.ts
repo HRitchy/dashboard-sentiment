@@ -77,15 +77,3 @@ export const STATE_SENTENCES: Record<SentimentState, string> = {
   PANIQUE: "Le marché est en panique.",
 };
 
-export const STATE_RECOMMENDATIONS: Record<SentimentState, string> = {
-  EUPHORIE:
-    "Vendre progressivement pour ramener l'exposition aux actions à 80 %.",
-  CALME:
-    "Vendre progressivement pour ramener l'exposition aux actions à 80 %.",
-  NEUTRE: "Maintenir les positions actuelles sans intervention.",
-  STRESS: "Acheter pour atteindre une exposition aux actions de 82,5 %.",
-  PANIQUE: "Acheter pour atteindre une exposition aux actions de 85 %.",
-};
-
-export const INDETERMINATE_RECOMMENDATION =
-  "Maintenir les positions actuelles sans intervention.";
