@@ -306,6 +306,9 @@ body {
   color: var(--c-panique);
   font-style: normal;
 }
+.ai-refresh-btn {
+  margin-top: 10px;
+}
 /* ============ SETTINGS MODAL ============ */
 .modal-overlay {
   position: fixed;

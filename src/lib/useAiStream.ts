@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface AiStreamState {
   text: string;
   loading: boolean;
   error: string | null;
+  refresh: () => void;
 }
 
 interface AiStreamOptions {
@@ -59,6 +60,9 @@ export function useAiStream<TBody>(
   const bodyKey = body == null ? null : JSON.stringify(body);
   const trimmedKey = apiKey?.trim() || null;
 
+  // Bumped by `refresh()` to force a re-run even when the daily cache is fresh.
+  const [refreshNonce, setRefreshNonce] = useState(0);
+
   // In daily-cache mode the React key is fixed per cache key so body changes
   // (e.g. user clicking « Actualiser ») never reschedule the effect.
   // Without daily caching we keep the legacy behaviour: each body change
@@ -67,8 +71,8 @@ export function useAiStream<TBody>(
     bodyKey == null
       ? null
       : dailyCacheKey
-        ? `daily:${dailyCacheKey}`
-        : `${trimmedKey ?? ""}::${bodyKey}`;
+        ? `daily:${dailyCacheKey}:${refreshNonce}`
+        : `${trimmedKey ?? ""}::${bodyKey}:${refreshNonce}`;
 
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
@@ -185,5 +189,16 @@ export function useAiStream<TBody>(
     return () => controller.abort();
   }, [reactKey, url, dailyCacheKey]);
 
-  return { text, loading, error };
+  const refresh = useCallback(() => {
+    if (dailyCacheKey && typeof window !== "undefined") {
+      try {
+        localStorage.removeItem(dailyCacheKey);
+      } catch {
+        /* ignore */
+      }
+    }
+    setRefreshNonce((n) => n + 1);
+  }, [dailyCacheKey]);
+
+  return { text, loading, error, refresh };
 }
