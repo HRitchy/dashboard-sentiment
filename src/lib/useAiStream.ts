@@ -31,39 +31,18 @@ export function useAiStream<TBody>(
   const [error, setError] = useState<string | null>(null);
   const [lastKey, setLastKey] = useState<string | null>(null);
 
-
   // React-recommended pattern for resetting state when an input changes:
   // do it in render, not in an effect. https://react.dev/reference/react/useState
   if (cacheKey !== lastKey) {
     setLastKey(cacheKey);
+    setText("");
     setError(null);
-
-    let cachedText = "";
-    if (cacheKey != null && typeof window !== "undefined") {
-      try {
-        const raw = localStorage.getItem(`ai-daily-cache::${url}::${cacheKey}`);
-        if (raw) {
-          const parsed = JSON.parse(raw) as { date?: string; text?: string };
-          const today = new Date().toISOString().slice(0, 10);
-          if (parsed?.date === today && typeof parsed.text === "string") {
-            cachedText = parsed.text;
-          }
-        }
-      } catch {
-        /* ignore localStorage issues */
-      }
-    }
-
-    setText(cachedText);
-    setLoading(cacheKey != null && !cachedText);
+    setLoading(cacheKey != null);
   }
 
   useEffect(() => {
     if (bodyKey == null) return;
     const controller = new AbortController();
-    const key = `ai-daily-cache::${url}::${cacheKey ?? bodyKey}`;
-
-    if (text) return;
 
     (async () => {
       try {
@@ -95,32 +74,15 @@ export function useAiStream<TBody>(
 
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
-        let finalText = "";
         for (;;) {
           const { value, done } = await reader.read();
           if (done) break;
           if (value) {
-            const chunk = decoder.decode(value, { stream: true });
-            finalText += chunk;
-            setText((prev) => prev + chunk);
+            setText((prev) => prev + decoder.decode(value, { stream: true }));
           }
         }
         const tail = decoder.decode();
-        if (tail) {
-          finalText += tail;
-          setText((prev) => prev + tail);
-        }
-        try {
-          localStorage.setItem(
-            key,
-            JSON.stringify({
-              date: new Date().toISOString().slice(0, 10),
-              text: finalText,
-            }),
-          );
-        } catch {
-          /* ignore localStorage issues */
-        }
+        if (tail) setText((prev) => prev + tail);
       } catch (err) {
         if (controller.signal.aborted) return;
         setError(err instanceof Error ? err.message : String(err));
@@ -130,7 +92,7 @@ export function useAiStream<TBody>(
     })();
 
     return () => controller.abort();
-  }, [url, bodyKey, trimmedKey, cacheKey, text]);
+  }, [url, bodyKey, trimmedKey]);
 
   return { text, loading, error };
 }
