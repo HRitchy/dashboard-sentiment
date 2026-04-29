@@ -1,6 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
 
-export const anthropic = new Anthropic();
 export const MODEL = "claude-sonnet-4-6";
 
 const encoder = new TextEncoder();
@@ -9,12 +8,15 @@ export function streamText({
   system,
   user,
   maxTokens = 1024,
+  apiKey,
 }: {
   system: string;
   user: string;
   maxTokens?: number;
+  apiKey?: string;
 }): ReadableStream<Uint8Array> {
-  const stream = anthropic.messages.stream({
+  const client = apiKey ? new Anthropic({ apiKey }) : new Anthropic();
+  const stream = client.messages.stream({
     model: MODEL,
     max_tokens: maxTokens,
     system,

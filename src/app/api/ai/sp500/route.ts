@@ -63,11 +63,14 @@ export async function POST(req: Request): Promise<Response> {
     return Response.json({ error: "Champ 'stats' manquant." }, { status: 400 });
   }
 
+  const apiKey = req.headers.get("x-anthropic-api-key")?.trim() || undefined;
+
   try {
     const stream = streamText({
       system: SYSTEM_PROMPT,
       user: buildUserPrompt(body.stats),
       maxTokens: 256,
+      apiKey,
     });
 
     return new Response(stream, {

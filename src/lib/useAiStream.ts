@@ -8,13 +8,23 @@ interface AiStreamState {
   error: string | null;
 }
 
+interface AiStreamOptions {
+  apiKey?: string | null;
+}
+
 export function useAiStream<TBody>(
   url: string,
   body: TBody | null,
+  options: AiStreamOptions = {},
 ): AiStreamState {
+  const { apiKey } = options;
+
   // JSON.stringify is stable for the simple bodies we pass in (no functions,
   // no cyclic refs); it lets us key the effect on value rather than identity.
-  const key = body == null ? null : JSON.stringify(body);
+  const bodyKey = body == null ? null : JSON.stringify(body);
+  const trimmedKey = apiKey?.trim() || null;
+  const cacheKey =
+    bodyKey == null ? null : `${trimmedKey ?? ""}::${bodyKey}`;
 
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
@@ -23,23 +33,28 @@ export function useAiStream<TBody>(
 
   // React-recommended pattern for resetting state when an input changes:
   // do it in render, not in an effect. https://react.dev/reference/react/useState
-  if (key !== lastKey) {
-    setLastKey(key);
+  if (cacheKey !== lastKey) {
+    setLastKey(cacheKey);
     setText("");
     setError(null);
-    setLoading(key != null);
+    setLoading(cacheKey != null);
   }
 
   useEffect(() => {
-    if (key == null) return;
+    if (bodyKey == null) return;
     const controller = new AbortController();
 
     (async () => {
       try {
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+        if (trimmedKey) headers["x-anthropic-api-key"] = trimmedKey;
+
         const res = await fetch(url, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: key,
+          headers,
+          body: bodyKey,
           cache: "no-store",
           signal: controller.signal,
         });
@@ -77,7 +92,7 @@ export function useAiStream<TBody>(
     })();
 
     return () => controller.abort();
-  }, [url, key]);
+  }, [url, bodyKey, trimmedKey]);
 
   return { text, loading, error };
 }

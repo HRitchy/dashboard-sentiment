@@ -49,17 +49,20 @@ function formatTime(d: Date): string {
 
 const STORAGE_KEY = "dashboard-thresholds";
 const THEME_KEY = "dashboard-theme";
+const API_KEY_KEY = "dashboard-anthropic-key";
 
 export default function Dashboard() {
   const [thresholds, setThresholds] = useState<Thresholds>(DEFAULT_THRESHOLDS);
   const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [apiKey, setApiKey] = useState<string>("");
+  const [apiKeyLoaded, setApiKeyLoaded] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [payload, setPayload] = useState<SentimentPayload | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [timestamp, setTimestamp] = useState<Date | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
-  // Load persisted thresholds + theme on mount (client-only).
+  // Load persisted thresholds + theme + API key on mount (client-only).
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -73,8 +76,12 @@ export default function Dashboard() {
       }
       const savedTheme = localStorage.getItem(THEME_KEY);
       if (savedTheme === "dark" || savedTheme === "light") setTheme(savedTheme);
+      const savedKey = localStorage.getItem(API_KEY_KEY);
+      if (savedKey) setApiKey(savedKey);
     } catch {
       /* ignore */
+    } finally {
+      setApiKeyLoaded(true);
     }
   }, []);
 
@@ -86,6 +93,17 @@ export default function Dashboard() {
       /* ignore */
     }
   }, [thresholds]);
+
+  // Persist API key (skip until first load is done so we don't overwrite it).
+  useEffect(() => {
+    if (!apiKeyLoaded) return;
+    try {
+      if (apiKey) localStorage.setItem(API_KEY_KEY, apiKey);
+      else localStorage.removeItem(API_KEY_KEY);
+    } catch {
+      /* ignore */
+    }
+  }, [apiKey, apiKeyLoaded]);
 
   // Sync theme attribute + persist.
   useEffect(() => {
@@ -142,10 +160,10 @@ export default function Dashboard() {
     : INDETERMINATE_RECOMMENDATION;
 
   const aiBody = useMemo(
-    () => (payload ? { payload, thresholds } : null),
-    [payload, thresholds],
+    () => (payload && apiKeyLoaded ? { payload, thresholds } : null),
+    [payload, thresholds, apiKeyLoaded],
   );
-  const ai = useAiStream("/api/ai/verdict", aiBody);
+  const ai = useAiStream("/api/ai/verdict", aiBody, { apiKey });
 
   // Build a single error banner summarising individual reading failures.
   const errors = [
@@ -379,6 +397,8 @@ export default function Dashboard() {
         open={settingsOpen}
         thresholds={thresholds}
         onChange={setThresholds}
+        apiKey={apiKey}
+        onApiKeyChange={setApiKey}
         onClose={() => setSettingsOpen(false)}
       />
     </>
