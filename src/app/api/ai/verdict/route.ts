@@ -49,12 +49,14 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   const thresholds = body.thresholds ?? DEFAULT_THRESHOLDS;
+  const apiKey = req.headers.get("x-anthropic-api-key")?.trim() || undefined;
 
   try {
     const stream = streamText({
       system: SYSTEM_PROMPT,
       user: buildUserPrompt(body.payload, thresholds),
       maxTokens: 256,
+      apiKey,
     });
 
     return new Response(stream, {

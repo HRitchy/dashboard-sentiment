@@ -509,6 +509,71 @@ body {
   pointer-events: none;
 }
 
+.thr-link {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.thr-link:hover { opacity: 0.7; }
+.thr-sub code {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11.5px;
+  padding: 1px 5px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+
+.thr-apikey { display: flex; flex-direction: column; gap: 8px; }
+.thr-apikey-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+.thr-apikey-row input {
+  flex: 1;
+  padding: 12px 14px;
+  border: 1px solid var(--line-2);
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 0;
+  letter-spacing: 0.02em;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.thr-apikey-row input:hover { border-color: var(--ink-3); }
+.thr-apikey-row input:focus {
+  outline: none;
+  border-color: var(--ink);
+  background: var(--panel);
+}
+.thr-apikey-hint {
+  font-size: 11.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.01em;
+}
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--line-2);
+  color: var(--ink-2);
+  padding: 0 14px;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  letter-spacing: -0.005em;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.btn-ghost:hover:not(:disabled) {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+.btn-ghost:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .modal-foot {
   display: flex;
   justify-content: space-between;

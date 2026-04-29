@@ -14,6 +14,7 @@ import styles from "./page.module.css";
 
 const SYMBOL = "^GSPC";
 const THEME_KEY = "dashboard-theme";
+const API_KEY_KEY = "dashboard-anthropic-key";
 
 type Theme = "light" | "dark";
 type RangeKey = "6m" | "ytd" | "1y" | "5y" | "10y" | "max";
@@ -554,6 +555,8 @@ function Chart({ points, mm50, mm200 }: ChartProps) {
 export default function Sp500Client() {
   const [theme, setTheme] = useState<Theme>("light");
   const [rangeKey, setRangeKey] = useState<RangeKey>("1y");
+  const [apiKey, setApiKey] = useState<string>("");
+  const [apiKeyLoaded, setApiKeyLoaded] = useState(false);
   const [data, setData] = useState<{
     points: Point[];
     mm50All: (number | null)[];
@@ -571,8 +574,12 @@ export default function Sp500Client() {
     try {
       const saved = localStorage.getItem(THEME_KEY);
       if (saved === "dark" || saved === "light") setTheme(saved);
+      const savedKey = localStorage.getItem(API_KEY_KEY);
+      if (savedKey) setApiKey(savedKey);
     } catch {
       /* ignore */
+    } finally {
+      setApiKeyLoaded(true);
     }
   }, []);
 
@@ -697,10 +704,10 @@ export default function Sp500Client() {
   }, [data]);
 
   const aiBody = useMemo(
-    () => (aiStats ? { stats: aiStats } : null),
-    [aiStats],
+    () => (aiStats && apiKeyLoaded ? { stats: aiStats } : null),
+    [aiStats, apiKeyLoaded],
   );
-  const ai = useAiStream("/api/ai/sp500", aiBody);
+  const ai = useAiStream("/api/ai/sp500", aiBody, { apiKey });
 
   return (
     <div className={styles.page}>

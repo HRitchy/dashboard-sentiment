@@ -1,11 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { DEFAULT_THRESHOLDS, type Thresholds } from "@/lib/types";
 
 interface Props {
   open: boolean;
   thresholds: Thresholds;
   onChange: (t: Thresholds) => void;
+  apiKey: string;
+  onApiKeyChange: (k: string) => void;
   onClose: () => void;
 }
 
@@ -13,8 +16,12 @@ export default function SettingsModal({
   open,
   thresholds,
   onChange,
+  apiKey,
+  onApiKeyChange,
   onClose,
 }: Props) {
+  const [showKey, setShowKey] = useState(false);
+
   function setVix(key: keyof Thresholds["vix"], val: number) {
     onChange({ ...thresholds, vix: { ...thresholds.vix, [key]: val } });
   }
@@ -63,6 +70,66 @@ export default function SettingsModal({
         </div>
 
         <div className="modal-body">
+          {/* Anthropic API key */}
+          <div className="thr-group">
+            <div className="thr-head">
+              <span className="thr-name">Clé API Anthropic</span>
+              <span className="thr-src">stockée localement · navigateur</span>
+            </div>
+            <div className="thr-sub">
+              Renseignez votre clé pour activer l&apos;analyse IA (verdict global
+              et S&amp;P 500). Elle reste dans le <code>localStorage</code> de ce
+              navigateur et n&apos;est transmise qu&apos;à l&apos;API de cette
+              application pour appeler Claude côté serveur.{" "}
+              <a
+                href="https://console.anthropic.com/settings/keys"
+                target="_blank"
+                rel="noreferrer"
+                className="thr-link"
+              >
+                Obtenir une clé
+              </a>
+              .
+            </div>
+
+            <div className="thr-apikey">
+              <div className="thr-apikey-row">
+                <input
+                  type={showKey ? "text" : "password"}
+                  value={apiKey}
+                  onChange={(e) => onApiKeyChange(e.target.value)}
+                  placeholder="sk-ant-api03-…"
+                  spellCheck={false}
+                  autoComplete="off"
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                />
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={() => setShowKey((v) => !v)}
+                  title={showKey ? "Masquer" : "Afficher"}
+                >
+                  {showKey ? "Masquer" : "Afficher"}
+                </button>
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={() => onApiKeyChange("")}
+                  disabled={!apiKey}
+                  title="Effacer la clé enregistrée"
+                >
+                  Effacer
+                </button>
+              </div>
+              <div className="thr-apikey-hint">
+                {apiKey
+                  ? "Clé active — l'analyse IA utilise cette clé."
+                  : "Aucune clé renseignée — l'analyse IA utilisera la variable ANTHROPIC_API_KEY du serveur si elle est définie."}
+              </div>
+            </div>
+          </div>
+
           {/* VIX */}
           <div className="thr-group">
             <div className="thr-head">
