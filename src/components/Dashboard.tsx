@@ -57,6 +57,8 @@ const STORAGE_KEY = "dashboard-thresholds";
 const THEME_KEY = "dashboard-theme";
 const API_KEY_KEY = "dashboard-anthropic-key";
 
+type TabKey = "indicateurs" | "actualites";
+
 export default function Dashboard() {
   const [thresholds, setThresholds] = useState<Thresholds>(DEFAULT_THRESHOLDS);
   const [theme, setTheme] = useState<"light" | "dark">("light");
@@ -67,6 +69,7 @@ export default function Dashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [timestamp, setTimestamp] = useState<Date | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TabKey>("indicateurs");
 
   // Load persisted thresholds + theme + API key on mount (client-only).
   useEffect(() => {
@@ -255,192 +258,234 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Global verdict — hero */}
-        <div
-          className={`verdict-hero ${
-            conv.state ? `panel-${conv.state.toLowerCase()}` : "panel-neutre"
-          }`}
-        >
-          <div className="verdict" key={finalSentence}>
-            <div className="fade-in">
-              <h2
-                className={`verdict-title ${
-                  conv.state ? `w-${conv.state.toLowerCase()}` : ""
-                }`}
-              >
-                {conv.state ? finalSentence : <em>{finalSentence}</em>}
-              </h2>
-              {payload && (
-                <div className={`ai-commentary${ai.error ? " is-error" : ""}`}>
-                  {ai.error ? (
-                    <p className="ai-headline">{`Analyse IA indisponible : ${ai.error}`}</p>
-                  ) : (
-                    <>
-                      <p className="ai-headline">
-                        {ai.headline ||
-                          (ai.loading && !aiHasContent ? "Analyse IA en cours…" : "")}
-                      </p>
-                      {ai.bullets.length > 0 && (
-                        <ul className="ai-bullets">
-                          {ai.bullets.map((b, i) => (
-                            <li key={i}>{b}</li>
-                          ))}
-                        </ul>
-                      )}
-                      {ai.sources.length > 0 && (
-                        <p className="ai-sources">
-                          Sources :{" "}
-                          {ai.sources.map((s, i) => (
-                            <span key={s.url}>
-                              {i > 0 && " · "}
-                              <a
-                                href={s.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                title={s.title}
-                              >
-                                {hostname(s.url)}
-                              </a>
-                            </span>
-                          ))}
+        {/* Tabs */}
+        <div className="tabs" role="tablist" aria-label="Sections du tableau de bord">
+          <button
+            role="tab"
+            type="button"
+            aria-selected={activeTab === "indicateurs"}
+            className={`tab${activeTab === "indicateurs" ? " is-active" : ""}`}
+            onClick={() => setActiveTab("indicateurs")}
+          >
+            Indicateurs
+          </button>
+          <button
+            role="tab"
+            type="button"
+            aria-selected={activeTab === "actualites"}
+            className={`tab${activeTab === "actualites" ? " is-active" : ""}`}
+            onClick={() => setActiveTab("actualites")}
+          >
+            Actualités
+          </button>
+        </div>
+
+        {activeTab === "actualites" && (
+          <div
+            className={`verdict-hero ${
+              conv.state ? `panel-${conv.state.toLowerCase()}` : "panel-neutre"
+            }`}
+            role="tabpanel"
+          >
+            <div className="verdict">
+              <div className="fade-in">
+                {payload ? (
+                  <div className={`ai-commentary${ai.error ? " is-error" : ""}`}>
+                    {ai.error ? (
+                      <p className="ai-headline">{`Analyse IA indisponible : ${ai.error}`}</p>
+                    ) : (
+                      <>
+                        <p className="ai-headline">
+                          {ai.headline ||
+                            (ai.loading && !aiHasContent ? "Analyse IA en cours…" : "")}
                         </p>
-                      )}
-                    </>
-                  )}
-                  <button
-                    className={`refresh-btn ai-refresh-btn ${ai.loading ? "spin" : ""}`}
-                    onClick={ai.refresh}
-                    disabled={ai.loading}
-                    title="Rafraîchir l'analyse IA"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
+                        {ai.bullets.length > 0 && (
+                          <ul className="ai-bullets">
+                            {ai.bullets.map((b, i) => (
+                              <li key={i}>{b}</li>
+                            ))}
+                          </ul>
+                        )}
+                        {ai.sources.length > 0 && (
+                          <p className="ai-sources">
+                            Sources :{" "}
+                            {ai.sources.map((s, i) => (
+                              <span key={s.url}>
+                                {i > 0 && " · "}
+                                <a
+                                  href={s.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title={s.title}
+                                >
+                                  {hostname(s.url)}
+                                </a>
+                              </span>
+                            ))}
+                          </p>
+                        )}
+                      </>
+                    )}
+                    <button
+                      className={`refresh-btn ai-refresh-btn ${ai.loading ? "spin" : ""}`}
+                      onClick={ai.refresh}
+                      disabled={ai.loading}
+                      title="Rafraîchir l'analyse IA"
                     >
-                      <path d="M3 12a9 9 0 0 1 15.5-6.3L21 8" />
-                      <path d="M21 3v5h-5" />
-                      <path d="M21 12a9 9 0 0 1-15.5 6.3L3 16" />
-                      <path d="M3 21v-5h5" />
-                    </svg>
-                    {ai.loading ? "Actualisation IA" : "Rafraîchir l'IA"}
-                  </button>
-                </div>
-              )}
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                      >
+                        <path d="M3 12a9 9 0 0 1 15.5-6.3L21 8" />
+                        <path d="M21 3v5h-5" />
+                        <path d="M21 12a9 9 0 0 1-15.5 6.3L3 16" />
+                        <path d="M3 21v-5h5" />
+                      </svg>
+                      {ai.loading ? "Actualisation IA" : "Rafraîchir l'IA"}
+                    </button>
+                  </div>
+                ) : (
+                  <p className="ai-headline">Chargement des données…</p>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Header */}
-        <div className="header">
-          <div className="refresh-block">
-            <div className="timestamp">
-              <span className="pulse" />
-              {timestamp ? formatTime(timestamp) : "—"}
-            </div>
-            <button
-              className={`refresh-btn ${refreshing ? "spin" : ""}`}
-              onClick={fetchData}
-              disabled={refreshing}
+        {activeTab === "indicateurs" && (
+          <div role="tabpanel">
+            {/* Global verdict — hero */}
+            <div
+              className={`verdict-hero ${
+                conv.state ? `panel-${conv.state.toLowerCase()}` : "panel-neutre"
+              }`}
             >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              >
-                <path d="M3 12a9 9 0 0 1 15.5-6.3L21 8" />
-                <path d="M21 3v5h-5" />
-                <path d="M21 12a9 9 0 0 1-15.5 6.3L3 16" />
-                <path d="M3 21v-5h5" />
-              </svg>
-              {refreshing ? "Actualisation" : "Actualiser"}
-            </button>
+              <div className="verdict" key={finalSentence}>
+                <div className="fade-in">
+                  <h2
+                    className={`verdict-title ${
+                      conv.state ? `w-${conv.state.toLowerCase()}` : ""
+                    }`}
+                  >
+                    {conv.state ? finalSentence : <em>{finalSentence}</em>}
+                  </h2>
+                </div>
+              </div>
+            </div>
+
+            {/* Header */}
+            <div className="header">
+              <div className="refresh-block">
+                <div className="timestamp">
+                  <span className="pulse" />
+                  {timestamp ? formatTime(timestamp) : "—"}
+                </div>
+                <button
+                  className={`refresh-btn ${refreshing ? "spin" : ""}`}
+                  onClick={fetchData}
+                  disabled={refreshing}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  >
+                    <path d="M3 12a9 9 0 0 1 15.5-6.3L21 8" />
+                    <path d="M21 3v5h-5" />
+                    <path d="M21 12a9 9 0 0 1-15.5 6.3L3 16" />
+                    <path d="M3 21v-5h5" />
+                  </svg>
+                  {refreshing ? "Actualisation" : "Actualiser"}
+                </button>
+              </div>
+            </div>
+
+            {/* Indicator speedometers — VIX / HY OAS / Fear & Greed */}
+            <div className="speedos-row">
+              <Speedometer
+                name="VIX"
+                source={vix?.source ?? "^VIX · CBOE"}
+                value={vix?.value ?? null}
+                range={VIX_RANGE}
+                ticks={VIX_TICKS}
+                zones={[
+                  { from: VIX_RANGE.min, to: thresholds.vix.euphorie, cls: "seg-euphorie" },
+                  { from: thresholds.vix.euphorie, to: thresholds.vix.calme, cls: "seg-calme" },
+                  { from: thresholds.vix.calme, to: thresholds.vix.stress, cls: "seg-stress" },
+                  { from: thresholds.vix.stress, to: VIX_RANGE.max, cls: "seg-panique" },
+                ] satisfies SpeedoZone[]}
+                formatValue={(v) => v.toFixed(2)}
+                loading={refreshing && !payload}
+                error={vix?.error}
+                state={vixState}
+                compact
+              />
+              <Speedometer
+                name="HY OAS"
+                source={oas?.source ?? "BAMLH0A0HYM2 · FRED"}
+                value={oas?.value ?? null}
+                range={OAS_RANGE}
+                ticks={OAS_TICKS}
+                zones={[
+                  { from: OAS_RANGE.min, to: thresholds.oas.euphorie, cls: "seg-euphorie" },
+                  { from: thresholds.oas.euphorie, to: thresholds.oas.calme, cls: "seg-calme" },
+                  { from: thresholds.oas.calme, to: thresholds.oas.stress, cls: "seg-stress" },
+                  { from: thresholds.oas.stress, to: OAS_RANGE.max, cls: "seg-panique" },
+                ] satisfies SpeedoZone[]}
+                formatValue={(v) => `${v.toFixed(2)}%`}
+                asOf={oas?.asOf ?? null}
+                loading={refreshing && !payload}
+                error={oas?.error}
+                state={oasState}
+                compact
+              />
+              <Speedometer
+                name="Fear & Greed"
+                source={fg?.source ?? "CNN · 0–100"}
+                value={fg?.value ?? null}
+                range={FG_RANGE}
+                ticks={FG_TICKS}
+                zones={[
+                  { from: FG_RANGE.min, to: thresholds.fg.panique, cls: "seg-panique" },
+                  { from: thresholds.fg.panique, to: thresholds.fg.stress, cls: "seg-stress" },
+                  { from: thresholds.fg.stress, to: thresholds.fg.neutre, cls: "seg-neutre" },
+                  { from: thresholds.fg.neutre, to: thresholds.fg.calme, cls: "seg-calme" },
+                  { from: thresholds.fg.calme, to: FG_RANGE.max, cls: "seg-euphorie" },
+                ] satisfies SpeedoZone[]}
+                formatValue={(v) => v.toFixed(0)}
+                loading={refreshing && !payload}
+                error={fg?.error}
+                state={fgState}
+                compact
+              />
+            </div>
+
+            {/* Market conditions speedometer (NFCI) */}
+            <Speedometer
+              name="Conditions de marché"
+              source={nfci?.source ?? "FRED · NFCI"}
+              value={nfci?.value ?? null}
+              range={NFCI_RANGE}
+              ticks={NFCI_TICKS}
+              zones={[
+                { from: NFCI_RANGE.min, to: NFCI_THRESHOLDS.calme, cls: "seg-euphorie" },
+                { from: NFCI_THRESHOLDS.calme, to: NFCI_THRESHOLDS.normal, cls: "seg-neutre" },
+                { from: NFCI_THRESHOLDS.normal, to: NFCI_THRESHOLDS.stress, cls: "seg-stress" },
+                { from: NFCI_THRESHOLDS.stress, to: NFCI_RANGE.max, cls: "seg-panique" },
+              ] satisfies SpeedoZone[]}
+              formatValue={nfciValue}
+              asOf={nfci?.asOf ?? null}
+              loading={refreshing && !payload}
+              error={nfci?.error}
+              state={nfciState}
+            />
           </div>
-        </div>
-
-        {/* Indicator speedometers — VIX / HY OAS / Fear & Greed */}
-        <div className="speedos-row">
-          <Speedometer
-            name="VIX"
-            source={vix?.source ?? "^VIX · CBOE"}
-            value={vix?.value ?? null}
-            range={VIX_RANGE}
-            ticks={VIX_TICKS}
-            zones={[
-              { from: VIX_RANGE.min, to: thresholds.vix.euphorie, cls: "seg-euphorie" },
-              { from: thresholds.vix.euphorie, to: thresholds.vix.calme, cls: "seg-calme" },
-              { from: thresholds.vix.calme, to: thresholds.vix.stress, cls: "seg-stress" },
-              { from: thresholds.vix.stress, to: VIX_RANGE.max, cls: "seg-panique" },
-            ] satisfies SpeedoZone[]}
-            formatValue={(v) => v.toFixed(2)}
-            loading={refreshing && !payload}
-            error={vix?.error}
-            state={vixState}
-            compact
-          />
-          <Speedometer
-            name="HY OAS"
-            source={oas?.source ?? "BAMLH0A0HYM2 · FRED"}
-            value={oas?.value ?? null}
-            range={OAS_RANGE}
-            ticks={OAS_TICKS}
-            zones={[
-              { from: OAS_RANGE.min, to: thresholds.oas.euphorie, cls: "seg-euphorie" },
-              { from: thresholds.oas.euphorie, to: thresholds.oas.calme, cls: "seg-calme" },
-              { from: thresholds.oas.calme, to: thresholds.oas.stress, cls: "seg-stress" },
-              { from: thresholds.oas.stress, to: OAS_RANGE.max, cls: "seg-panique" },
-            ] satisfies SpeedoZone[]}
-            formatValue={(v) => `${v.toFixed(2)}%`}
-            asOf={oas?.asOf ?? null}
-            loading={refreshing && !payload}
-            error={oas?.error}
-            state={oasState}
-            compact
-          />
-          <Speedometer
-            name="Fear & Greed"
-            source={fg?.source ?? "CNN · 0–100"}
-            value={fg?.value ?? null}
-            range={FG_RANGE}
-            ticks={FG_TICKS}
-            zones={[
-              { from: FG_RANGE.min, to: thresholds.fg.panique, cls: "seg-panique" },
-              { from: thresholds.fg.panique, to: thresholds.fg.stress, cls: "seg-stress" },
-              { from: thresholds.fg.stress, to: thresholds.fg.neutre, cls: "seg-neutre" },
-              { from: thresholds.fg.neutre, to: thresholds.fg.calme, cls: "seg-calme" },
-              { from: thresholds.fg.calme, to: FG_RANGE.max, cls: "seg-euphorie" },
-            ] satisfies SpeedoZone[]}
-            formatValue={(v) => v.toFixed(0)}
-            loading={refreshing && !payload}
-            error={fg?.error}
-            state={fgState}
-            compact
-          />
-        </div>
-
-        {/* Market conditions speedometer (NFCI) */}
-        <Speedometer
-          name="Conditions de marché"
-          source={nfci?.source ?? "FRED · NFCI"}
-          value={nfci?.value ?? null}
-          range={NFCI_RANGE}
-          ticks={NFCI_TICKS}
-          zones={[
-            { from: NFCI_RANGE.min, to: NFCI_THRESHOLDS.calme, cls: "seg-euphorie" },
-            { from: NFCI_THRESHOLDS.calme, to: NFCI_THRESHOLDS.normal, cls: "seg-neutre" },
-            { from: NFCI_THRESHOLDS.normal, to: NFCI_THRESHOLDS.stress, cls: "seg-stress" },
-            { from: NFCI_THRESHOLDS.stress, to: NFCI_RANGE.max, cls: "seg-panique" },
-          ] satisfies SpeedoZone[]}
-          formatValue={nfciValue}
-          asOf={nfci?.asOf ?? null}
-          loading={refreshing && !payload}
-          error={nfci?.error}
-          state={nfciState}
-        />
+        )}
 
       </div>
 
