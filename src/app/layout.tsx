@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono, Instrument_Serif } from "next/font/google";
 import "./globals.css";
+import PwaRegister from "@/components/PwaRegister";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -20,6 +21,13 @@ const instrumentSerif = Instrument_Serif({
   weight: "400",
   style: "italic",
 });
+
+export const viewport: Viewport = {
+  themeColor: "#0a0a0a",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
 
 export const metadata: Metadata = {
   title: "Sentiment de Marché",
@@ -44,7 +52,10 @@ export default function RootLayout({
       data-theme="light"
       className={`${inter.variable} ${jetbrainsMono.variable} ${instrumentSerif.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        {children}
+        <PwaRegister />
+      </body>
     </html>
   );
 }
