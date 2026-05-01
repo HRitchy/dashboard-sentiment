@@ -53,32 +53,144 @@ export interface BulletinSource {
   title: string;
 }
 
+export type BulletinBias = "HAUSSIER" | "BAISSIER" | "MITIGE";
+export type BulletinCategory =
+  | "MACRO"
+  | "FED"
+  | "RESULTATS"
+  | "GEO"
+  | "TECH"
+  | "CREDIT"
+  | "MARCHE";
+
 export type BulletinEvent =
-  | { type: "headline"; text: string }
-  | { type: "bullet"; index: number; text: string }
+  | { type: "headline"; text: string; bias: BulletinBias | null }
+  | {
+      type: "bullet";
+      index: number;
+      text: string;
+      category: BulletinCategory | null;
+    }
   | { type: "source"; url: string; title: string }
   | { type: "done" };
 
-const HEADLINE_PREFIX = /^(?:TITRE|TITLE|HEADLINE)\s*:\s*/i;
+const HEADLINE_PREFIX = /^(?:TITRE|TITLE|HEADLINE)\s*(?:\[([^\]]+)\])?\s*:\s*/i;
 const BULLET_PREFIX = /^[-*•]\s+/;
+const BULLET_TAG = /^\[([^\]]+)\]\s*/;
 
-function parseBulletin(raw: string): { headline: string; bullets: string[] } {
+const BIAS_MAP: Record<string, BulletinBias> = {
+  HAUSSIER: "HAUSSIER",
+  HAUSSIERE: "HAUSSIER",
+  BULLISH: "HAUSSIER",
+  POSITIF: "HAUSSIER",
+  BAISSIER: "BAISSIER",
+  BAISSIERE: "BAISSIER",
+  BEARISH: "BAISSIER",
+  NEGATIF: "BAISSIER",
+  MITIGE: "MITIGE",
+  MITIGEE: "MITIGE",
+  MIXED: "MITIGE",
+  NEUTRE: "MITIGE",
+};
+
+const CATEGORY_MAP: Record<string, BulletinCategory> = {
+  MACRO: "MACRO",
+  INFLATION: "MACRO",
+  EMPLOI: "MACRO",
+  FED: "FED",
+  TAUX: "FED",
+  BCE: "FED",
+  RESULTATS: "RESULTATS",
+  EARNINGS: "RESULTATS",
+  GEO: "GEO",
+  GEOPOLITIQUE: "GEO",
+  POLITIQUE: "GEO",
+  TECH: "TECH",
+  IA: "TECH",
+  CREDIT: "CREDIT",
+  OBLIGATIONS: "CREDIT",
+  MARCHE: "MARCHE",
+  MARCHES: "MARCHE",
+  FLUX: "MARCHE",
+};
+
+function normalizeToken(raw: string): string {
+  return raw
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "");
+}
+
+function resolveBias(token: string | undefined | null): BulletinBias | null {
+  if (!token) return null;
+  return BIAS_MAP[normalizeToken(token)] ?? null;
+}
+
+function resolveCategory(
+  token: string | undefined | null,
+): BulletinCategory | null {
+  if (!token) return null;
+  return CATEGORY_MAP[normalizeToken(token)] ?? null;
+}
+
+interface ParsedBullet {
+  text: string;
+  category: BulletinCategory | null;
+}
+
+interface ParsedBulletin {
+  headline: string;
+  bias: BulletinBias | null;
+  bullets: ParsedBullet[];
+}
+
+function parseBulletin(raw: string): ParsedBulletin {
   const lines = raw
     .split("\n")
     .map((l) => l.trim())
     .filter(Boolean);
 
   let headline = "";
-  const bullets: string[] = [];
+  let bias: BulletinBias | null = null;
+  const bullets: ParsedBullet[] = [];
   for (const line of lines) {
     if (!headline) {
-      headline = line.replace(HEADLINE_PREFIX, "").trim();
+      const headlineMatch = line.match(HEADLINE_PREFIX);
+      if (headlineMatch) {
+        bias = resolveBias(headlineMatch[1]);
+        headline = line.slice(headlineMatch[0].length).trim();
+      } else {
+        headline = line.trim();
+      }
+      // Some models put the bias inline at the start of the headline body too.
+      if (!bias) {
+        const inlineBias = headline.match(/^\[([^\]]+)\]\s*/);
+        if (inlineBias) {
+          const candidate = resolveBias(inlineBias[1]);
+          if (candidate) {
+            bias = candidate;
+            headline = headline.slice(inlineBias[0].length).trim();
+          }
+        }
+      }
       continue;
     }
     const m = line.match(BULLET_PREFIX);
-    if (m) bullets.push(line.slice(m[0].length).trim());
+    if (!m) continue;
+    let text = line.slice(m[0].length).trim();
+    let category: BulletinCategory | null = null;
+    const tagMatch = text.match(BULLET_TAG);
+    if (tagMatch) {
+      const candidate = resolveCategory(tagMatch[1]);
+      if (candidate) {
+        category = candidate;
+        text = text.slice(tagMatch[0].length).trim();
+      }
+    }
+    bullets.push({ text, category });
   }
-  return { headline, bullets: bullets.slice(0, 3) };
+  return { headline, bias, bullets: bullets.slice(0, 3) };
 }
 
 export function streamBulletin({
@@ -152,10 +264,16 @@ export function streamBulletin({
           }
         }
 
-        const { headline, bullets } = parseBulletin(fullText);
-        if (headline) writeEvent(controller, { type: "headline", text: headline });
-        bullets.forEach((text, index) =>
-          writeEvent(controller, { type: "bullet", index, text }),
+        const { headline, bias, bullets } = parseBulletin(fullText);
+        if (headline)
+          writeEvent(controller, { type: "headline", text: headline, bias });
+        bullets.forEach((b, index) =>
+          writeEvent(controller, {
+            type: "bullet",
+            index,
+            text: b.text,
+            category: b.category,
+          }),
         );
         sources.slice(0, 5).forEach((s) =>
           writeEvent(controller, { type: "source", url: s.url, title: s.title }),

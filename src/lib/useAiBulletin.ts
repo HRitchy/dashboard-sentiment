@@ -1,26 +1,39 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { BulletinBias, BulletinCategory } from "./claude";
 
 export interface BulletinSource {
   url: string;
   title: string;
 }
 
+export interface BulletinHeadline {
+  text: string;
+  bias: BulletinBias | null;
+}
+
+export interface BulletinBullet {
+  text: string;
+  category: BulletinCategory | null;
+}
+
 export interface BulletinPayload {
-  headline: string;
-  bullets: string[];
+  headline: BulletinHeadline;
+  bullets: BulletinBullet[];
   sources: BulletinSource[];
 }
 
 export interface BulletinState extends BulletinPayload {
   loading: boolean;
   error: string | null;
+  lastUpdatedAt: number | null;
   refresh: () => void;
 }
 
 interface CachedEntry {
   date: string;
+  updatedAt: number;
   payload: BulletinPayload;
 }
 
@@ -28,6 +41,8 @@ interface UseAiBulletinOptions {
   apiKey?: string | null;
   dailyCacheKey?: string | null;
 }
+
+const EMPTY_HEADLINE: BulletinHeadline = { text: "", bias: null };
 
 function todayStamp(): string {
   const d = new Date();
@@ -42,35 +57,58 @@ function readCache(key: string): CachedEntry | null {
     const raw = localStorage.getItem(key);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<CachedEntry> & {
-      payload?: Partial<BulletinPayload>;
+      payload?: Partial<BulletinPayload> & {
+        headline?: unknown;
+        bullets?: unknown;
+        sources?: unknown;
+      };
     };
     const p = parsed?.payload;
-    if (
-      parsed &&
-      typeof parsed.date === "string" &&
-      p &&
-      typeof p.headline === "string" &&
-      Array.isArray(p.bullets) &&
-      Array.isArray(p.sources)
+    if (!parsed || typeof parsed.date !== "string" || !p) return null;
+
+    let headline: BulletinHeadline | null = null;
+    if (typeof p.headline === "string") {
+      headline = { text: p.headline, bias: null };
+    } else if (
+      p.headline &&
+      typeof (p.headline as BulletinHeadline).text === "string"
     ) {
-      return {
-        date: parsed.date,
-        payload: {
-          headline: p.headline,
-          bullets: p.bullets.filter((b): b is string => typeof b === "string"),
-          sources: p.sources.filter(
-            (s): s is BulletinSource =>
-              !!s &&
-              typeof (s as BulletinSource).url === "string" &&
-              typeof (s as BulletinSource).title === "string",
-          ),
-        },
-      };
+      const h = p.headline as BulletinHeadline;
+      headline = { text: h.text, bias: h.bias ?? null };
     }
+    if (!headline) return null;
+
+    if (!Array.isArray(p.bullets) || !Array.isArray(p.sources)) return null;
+
+    const bullets: BulletinBullet[] = (p.bullets as unknown[])
+      .map((b): BulletinBullet | null => {
+        if (typeof b === "string") return { text: b, category: null };
+        if (b && typeof (b as BulletinBullet).text === "string") {
+          const bb = b as BulletinBullet;
+          return { text: bb.text, category: bb.category ?? null };
+        }
+        return null;
+      })
+      .filter((b): b is BulletinBullet => b != null);
+
+    const sources: BulletinSource[] = (p.sources as unknown[]).filter(
+      (s): s is BulletinSource =>
+        !!s &&
+        typeof (s as BulletinSource).url === "string" &&
+        typeof (s as BulletinSource).title === "string",
+    );
+
+    const updatedAt =
+      typeof parsed.updatedAt === "number" ? parsed.updatedAt : Date.parse(parsed.date);
+
+    return {
+      date: parsed.date,
+      updatedAt: Number.isFinite(updatedAt) ? updatedAt : Date.now(),
+      payload: { headline, bullets, sources },
+    };
   } catch {
-    /* ignore */
+    return null;
   }
-  return null;
 }
 
 interface BulletinEvent {
@@ -78,6 +116,8 @@ interface BulletinEvent {
   text?: unknown;
   url?: unknown;
   title?: unknown;
+  bias?: unknown;
+  category?: unknown;
 }
 
 export function useAiBulletin<TBody>(
@@ -99,11 +139,12 @@ export function useAiBulletin<TBody>(
         ? `daily:${dailyCacheKey}:${refreshNonce}`
         : `${trimmedKey ?? ""}::${bodyKey}:${refreshNonce}`;
 
-  const [headline, setHeadline] = useState("");
-  const [bullets, setBullets] = useState<string[]>([]);
+  const [headline, setHeadline] = useState<BulletinHeadline>(EMPTY_HEADLINE);
+  const [bullets, setBullets] = useState<BulletinBullet[]>([]);
   const [sources, setSources] = useState<BulletinSource[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null);
   const [lastReactKey, setLastReactKey] = useState<string | null>(null);
 
   const cacheValidRef = useRef(false);
@@ -129,12 +170,14 @@ export function useAiBulletin<TBody>(
       setHeadline(hydrated.payload.headline);
       setBullets(hydrated.payload.bullets);
       setSources(hydrated.payload.sources);
+      setLastUpdatedAt(hydrated.updatedAt);
       setLoading(false);
       setError(null);
     } else {
-      setHeadline("");
+      setHeadline(EMPTY_HEADLINE);
       setBullets([]);
       setSources([]);
+      setLastUpdatedAt(null);
       setError(null);
       setLoading(reactKey != null);
     }
@@ -149,17 +192,28 @@ export function useAiBulletin<TBody>(
     const controller = new AbortController();
 
     const acc: BulletinPayload = {
-      headline: "",
+      headline: { text: "", bias: null },
       bullets: [],
       sources: [],
     };
 
     const handleEvent = (evt: BulletinEvent) => {
       if (evt.type === "headline" && typeof evt.text === "string") {
-        acc.headline = evt.text;
-        setHeadline(evt.text);
+        const bias =
+          evt.bias === "HAUSSIER" || evt.bias === "BAISSIER" || evt.bias === "MITIGE"
+            ? evt.bias
+            : null;
+        acc.headline = { text: evt.text, bias };
+        setHeadline(acc.headline);
       } else if (evt.type === "bullet" && typeof evt.text === "string") {
-        acc.bullets = [...acc.bullets, evt.text];
+        const category =
+          typeof evt.category === "string" &&
+          ["MACRO", "FED", "RESULTATS", "GEO", "TECH", "CREDIT", "MARCHE"].includes(
+            evt.category,
+          )
+            ? (evt.category as BulletinCategory)
+            : null;
+        acc.bullets = [...acc.bullets, { text: evt.text, category }];
         setBullets(acc.bullets);
       } else if (evt.type === "source" && typeof evt.url === "string") {
         const title = typeof evt.title === "string" && evt.title ? evt.title : evt.url;
@@ -227,10 +281,12 @@ export function useAiBulletin<TBody>(
         if (tail) buffer += tail;
         if (buffer) flushLine(buffer);
 
-        if (dailyCacheKey && acc.headline) {
+        if (dailyCacheKey && acc.headline.text) {
+          const updatedAt = Date.now();
           try {
             const entry: CachedEntry = {
               date: todayStamp(),
+              updatedAt,
               payload: acc,
             };
             localStorage.setItem(dailyCacheKey, JSON.stringify(entry));
@@ -238,6 +294,9 @@ export function useAiBulletin<TBody>(
           } catch {
             /* ignore quota errors */
           }
+          setLastUpdatedAt(updatedAt);
+        } else if (acc.headline.text) {
+          setLastUpdatedAt(Date.now());
         }
       } catch (err) {
         if (controller.signal.aborted) return;
@@ -261,5 +320,5 @@ export function useAiBulletin<TBody>(
     setRefreshNonce((n) => n + 1);
   }, [dailyCacheKey]);
 
-  return { headline, bullets, sources, loading, error, refresh };
+  return { headline, bullets, sources, loading, error, lastUpdatedAt, refresh };
 }
