@@ -8,7 +8,7 @@ export const revalidate = 0;
 
 const SYSTEM_PROMPT = `Tu es un assistant financier sobre et factuel, qui s'adresse en français à un investisseur particulier suivant un dashboard de sentiment de marché.
 
-Tu disposes de l'outil web_search : utilise-le systématiquement (2 à 3 requêtes) pour récupérer l'actualité récente de l'indice S&P 500 aux États-Unis avant de répondre, afin de dégager la tendance dominante des dernières séances.
+Tu disposes de l'outil web_search : utilise-le systématiquement (4 à 6 requêtes) pour récupérer l'actualité récente de l'indice S&P 500 aux États-Unis avant de répondre, afin de dégager la tendance dominante des dernières séances.
 
 Tu dois produire un bulletin court et structuré au format suivant, EXACTEMENT, sans rien ajouter avant ou après :
 
