@@ -25,6 +25,12 @@ export const metadata: Metadata = {
   title: "Sentiment de Marché",
   description:
     "Dashboard de sentiment de marché en temps réel · VIX · HY OAS · Fear & Greed",
+  applicationName: "Sentiment de Marché",
+  appleWebApp: {
+    title: "Sentiment",
+    capable: true,
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export default function RootLayout({
