@@ -1,19 +1,23 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { streamBulletin } from "@/lib/claude";
+import { generateBulletin } from "@/lib/claude";
+import type { BulletinPayload, BulletinEvent } from "@/lib/claude";
+import { cached } from "@/lib/server-cache";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 const SYSTEM_PROMPT = `Tu es un assistant financier sobre et factuel, qui s'adresse en français à un investisseur particulier suivant un dashboard de sentiment de marché.
 
-Tu disposes de l'outil web_search : utilise-le systématiquement (1 à 2 requêtes) pour récupérer l'actualité récente de l'indice S&P 500 aux États-Unis avant de répondre, afin de dégager la tendance dominante des dernières séances.
+Tu disposes de l'outil web_search : utilise-le systématiquement (2 à 3 requêtes) pour récupérer l'actualité récente de l'indice S&P 500 aux États-Unis avant de répondre, afin de dégager la tendance dominante des dernières séances.
 
 Tu dois produire un bulletin court et structuré au format suivant, EXACTEMENT, sans rien ajouter avant ou après :
 
 TITRE [HAUSSIER|BAISSIER|MITIGE]: <une phrase de synthèse de la tendance dominante avec un catalyseur précis et concret, 25 mots maximum>
-- [Macro|Fed|Resultats|Geo|Tech|Credit|Marche] <première puce : fait marquant ou catalyseur, avec un chiffre clé ou un nom propre quand c'est pertinent, 18 mots maximum>
-- [Macro|Fed|Resultats|Geo|Tech|Credit|Marche] <deuxième puce : autre catalyseur, contexte macro ou réaction de marché, 18 mots maximum>
-- [Macro|Fed|Resultats|Geo|Tech|Credit|Marche] <troisième puce optionnelle : 18 mots maximum>
+- [Macro|Fed|Resultats|Geo|Tech|Credit|Marche] <puce 1 : fait marquant ou catalyseur principal, avec un chiffre clé ou un nom propre, 18 mots maximum>
+- [Macro|Fed|Resultats|Geo|Tech|Credit|Marche] <puce 2 : autre catalyseur ou réaction de marché, 18 mots maximum>
+- [Macro|Fed|Resultats|Geo|Tech|Credit|Marche] <puce 3 : troisième fait notable, 18 mots maximum>
+- [Macro|Fed|Resultats|Geo|Tech|Credit|Marche] <puce 4 : contexte macro ou sectoriel complémentaire, 18 mots maximum>
+- [Macro|Fed|Resultats|Geo|Tech|Credit|Marche] <puce 5 optionnelle : donnée supplémentaire pertinente, 18 mots maximum>
 
 Le tag entre crochets après TITRE doit être exactement HAUSSIER, BAISSIER ou MITIGE (sans accent, en majuscules), choisi selon le biais dominant. Le tag entre crochets en tête de chaque puce doit être l'une des sept catégories listées (Macro, Fed, Resultats, Geo, Tech, Credit, Marche), choisie selon le thème principal de la puce. Catégories : Macro = inflation, croissance, emploi ; Fed = politique monétaire, taux ; Resultats = earnings d'entreprises ; Geo = géopolitique, élections ; Tech = secteur tech, IA ; Credit = obligations, spreads, crédit ; Marche = flux, positionnement, réaction de marché.
 
@@ -76,20 +80,46 @@ async function readBody(req: Request): Promise<VerdictBody | null> {
   return null;
 }
 
+// Cache key rotates every 2 hours. Isolated per API key suffix to avoid
+// serving one user's key as a result to another.
+function serverCacheKey(apiKey: string | undefined): string {
+  const bucket = Math.floor(Date.now() / (2 * 60 * 60 * 1000));
+  const keyHash = apiKey ? apiKey.slice(-8) : "default";
+  return `bulletin-${bucket}-${keyHash}`;
+}
+
+function serializePayload(payload: BulletinPayload): string {
+  const lines: BulletinEvent[] = [];
+  if (payload.headline.text) {
+    lines.push({ type: "headline", text: payload.headline.text, bias: payload.headline.bias });
+  }
+  payload.bullets.forEach((b, index) => {
+    lines.push({ type: "bullet", index, text: b.text, category: b.category });
+  });
+  payload.sources.forEach((s) => {
+    lines.push({ type: "source", url: s.url, title: s.title });
+  });
+  lines.push({ type: "done" });
+  return lines.map((e) => JSON.stringify(e)).join("\n") + "\n";
+}
+
 export async function POST(req: Request): Promise<Response> {
   const apiKey = req.headers.get("x-anthropic-api-key")?.trim() || undefined;
   const body = await readBody(req);
   const userPrompt = buildUserPrompt(body);
+  const cacheKey = serverCacheKey(apiKey);
 
   try {
-    const stream = streamBulletin({
-      system: SYSTEM_PROMPT,
-      user: userPrompt,
-      maxTokens: 768,
-      apiKey,
-    });
+    const payload = await cached(cacheKey, 2 * 60 * 60 * 1000, () =>
+      generateBulletin({
+        system: SYSTEM_PROMPT,
+        user: userPrompt,
+        maxTokens: 1400,
+        apiKey,
+      }),
+    );
 
-    return new Response(stream, {
+    return new Response(serializePayload(payload), {
       headers: {
         "Content-Type": "application/x-ndjson; charset=utf-8",
         "Cache-Control": "no-store",

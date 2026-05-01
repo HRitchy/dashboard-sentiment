@@ -486,7 +486,13 @@ export default function Dashboard() {
                               <span className="skeleton skeleton-line" style={{ width: "88%" }} />
                             </li>
                             <li>
-                              <span className="skeleton skeleton-line" style={{ width: "70%" }} />
+                              <span className="skeleton skeleton-line" style={{ width: "76%" }} />
+                            </li>
+                            <li>
+                              <span className="skeleton skeleton-line" style={{ width: "82%" }} />
+                            </li>
+                            <li>
+                              <span className="skeleton skeleton-line" style={{ width: "65%" }} />
                             </li>
                           </ul>
                         ) : null}
