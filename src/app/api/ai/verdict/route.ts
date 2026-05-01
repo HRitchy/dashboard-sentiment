@@ -1,7 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { generateBulletin } from "@/lib/claude";
 import type { BulletinPayload, BulletinEvent } from "@/lib/claude";
-import { cached } from "@/lib/server-cache";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -80,14 +79,6 @@ async function readBody(req: Request): Promise<VerdictBody | null> {
   return null;
 }
 
-// Cache key rotates every 2 hours. Isolated per API key suffix to avoid
-// serving one user's key as a result to another.
-function serverCacheKey(apiKey: string | undefined): string {
-  const bucket = Math.floor(Date.now() / (2 * 60 * 60 * 1000));
-  const keyHash = apiKey ? apiKey.slice(-8) : "default";
-  return `bulletin-${bucket}-${keyHash}`;
-}
-
 function serializePayload(payload: BulletinPayload): string {
   const lines: BulletinEvent[] = [];
   if (payload.headline.text) {
@@ -107,17 +98,14 @@ export async function POST(req: Request): Promise<Response> {
   const apiKey = req.headers.get("x-anthropic-api-key")?.trim() || undefined;
   const body = await readBody(req);
   const userPrompt = buildUserPrompt(body);
-  const cacheKey = serverCacheKey(apiKey);
 
   try {
-    const payload = await cached(cacheKey, 2 * 60 * 60 * 1000, () =>
-      generateBulletin({
-        system: SYSTEM_PROMPT,
-        user: userPrompt,
-        maxTokens: 1400,
-        apiKey,
-      }),
-    );
+    const payload = await generateBulletin({
+      system: SYSTEM_PROMPT,
+      user: userPrompt,
+      maxTokens: 1400,
+      apiKey,
+    });
 
     return new Response(serializePayload(payload), {
       headers: {
