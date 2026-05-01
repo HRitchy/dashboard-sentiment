@@ -1,28 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { BulletinBias, BulletinCategory } from "./claude";
+import type {
+  BulletinBias,
+  BulletinCategory,
+  BulletinSource,
+  BulletinHeadline,
+  BulletinBullet,
+  BulletinPayload,
+} from "./claude";
 
-export interface BulletinSource {
-  url: string;
-  title: string;
-}
-
-export interface BulletinHeadline {
-  text: string;
-  bias: BulletinBias | null;
-}
-
-export interface BulletinBullet {
-  text: string;
-  category: BulletinCategory | null;
-}
-
-export interface BulletinPayload {
-  headline: BulletinHeadline;
-  bullets: BulletinBullet[];
-  sources: BulletinSource[];
-}
+export type { BulletinSource, BulletinHeadline, BulletinBullet, BulletinPayload };
 
 export interface BulletinState extends BulletinPayload {
   loading: boolean;

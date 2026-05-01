@@ -74,6 +74,22 @@ export type BulletinEvent =
   | { type: "source"; url: string; title: string }
   | { type: "done" };
 
+export interface BulletinHeadline {
+  text: string;
+  bias: BulletinBias | null;
+}
+
+export interface BulletinBullet {
+  text: string;
+  category: BulletinCategory | null;
+}
+
+export interface BulletinPayload {
+  headline: BulletinHeadline;
+  bullets: BulletinBullet[];
+  sources: BulletinSource[];
+}
+
 const HEADLINE_PREFIX = /^(?:TITRE|TITLE|HEADLINE)\s*(?:\[([^\]]+)\])?\s*:\s*/i;
 const BULLET_PREFIX = /^[-*•]\s+/;
 const BULLET_TAG = /^\[([^\]]+)\]\s*/;
@@ -190,7 +206,7 @@ function parseBulletin(raw: string): ParsedBulletin {
     }
     bullets.push({ text, category });
   }
-  return { headline, bias, bullets: bullets.slice(0, 3) };
+  return { headline, bias, bullets: bullets.slice(0, 5) };
 }
 
 export function streamBulletin({
@@ -288,4 +304,61 @@ export function streamBulletin({
       stream.controller.abort();
     },
   });
+}
+
+export async function generateBulletin({
+  system,
+  user,
+  maxTokens = 1400,
+  apiKey,
+}: {
+  system: string;
+  user: string;
+  maxTokens?: number;
+  apiKey?: string;
+}): Promise<BulletinPayload> {
+  const client = apiKey ? new Anthropic({ apiKey }) : new Anthropic();
+
+  const message = await client.messages.create({
+    model: MODEL,
+    max_tokens: maxTokens,
+    system,
+    messages: [{ role: "user", content: user }],
+    tools: [
+      {
+        type: "web_search_20250305",
+        name: "web_search",
+        max_uses: 3,
+      } as unknown as Anthropic.Messages.Tool,
+    ],
+  });
+
+  let fullText = "";
+  const sources: BulletinSource[] = [];
+  const seen = new Set<string>();
+
+  const addSource = (url: unknown, title: unknown) => {
+    if (typeof url !== "string" || !url || seen.has(url)) return;
+    seen.add(url);
+    sources.push({ url, title: typeof title === "string" && title ? title : url });
+  };
+
+  for (const block of message.content) {
+    if (block.type === "text") {
+      fullText += block.text;
+    }
+    const b = block as unknown as Record<string, unknown>;
+    if (b.type === "web_search_tool_result" && Array.isArray(b.content)) {
+      for (const r of b.content as Array<{ type?: string; url?: unknown; title?: unknown }>) {
+        if (r.type === "web_search_result") addSource(r.url, r.title);
+      }
+    }
+  }
+
+  const { headline, bias, bullets } = parseBulletin(fullText);
+  return {
+    headline: { text: headline, bias },
+    bullets: bullets.map((b) => ({ text: b.text, category: b.category })),
+    sources: sources.slice(0, 5),
+  };
 }
