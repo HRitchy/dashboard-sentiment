@@ -228,6 +228,7 @@ export default function Dashboard() {
     dailyCacheKey: "dashboard-ai-verdict",
   });
   const aiHasContent = ai.headline.text.length > 0 || ai.bullets.length > 0;
+
   const aiErrorKind: "missing-key" | "rate-limit" | "transient" | null = ai.error
     ? /ANTHROPIC_API_KEY|clé/i.test(ai.error)
       ? "missing-key"
@@ -242,6 +243,11 @@ export default function Dashboard() {
     const id = setInterval(() => setNowTick(Date.now()), 60_000);
     return () => clearInterval(id);
   }, []);
+
+  const refreshNews = useCallback(() => {
+    setNowTick(Date.now());
+    ai.refresh();
+  }, [ai]);
   const freshnessLabel = ai.lastUpdatedAt
     ? `Mis à jour ${formatRelative(ai.lastUpdatedAt, nowTick)}`
     : null;
@@ -395,7 +401,7 @@ export default function Dashboard() {
                         )}
                         <button
                           className={`icon-btn ai-refresh-icon ${ai.loading ? "spin" : ""}`}
-                          onClick={ai.refresh}
+                          onClick={refreshNews}
                           disabled={ai.loading}
                           aria-label={ai.loading ? "Actualisation en cours" : "Rafraîchir l'IA"}
                           title="Rafraîchir l'IA"
@@ -439,7 +445,7 @@ export default function Dashboard() {
                           ) : (
                             <button
                               className="ai-error-btn"
-                              onClick={ai.refresh}
+                              onClick={refreshNews}
                               disabled={ai.loading}
                             >
                               Réessayer
