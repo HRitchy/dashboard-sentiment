@@ -230,7 +230,7 @@ export function streamBulletin({
       {
         type: "web_search_20250305",
         name: "web_search",
-        max_uses: 2,
+        max_uses: 5,
       },
     ],
   });
@@ -291,7 +291,7 @@ export function streamBulletin({
             category: b.category,
           }),
         );
-        sources.slice(0, 5).forEach((s) =>
+        sources.slice(0, 8).forEach((s) =>
           writeEvent(controller, { type: "source", url: s.url, title: s.title }),
         );
         writeEvent(controller, { type: "done" });
@@ -328,7 +328,7 @@ export async function generateBulletin({
       {
         type: "web_search_20250305",
         name: "web_search",
-        max_uses: 3,
+        max_uses: 6,
       } as unknown as Anthropic.Messages.Tool,
     ],
   });
@@ -359,6 +359,6 @@ export async function generateBulletin({
   return {
     headline: { text: headline, bias },
     bullets: bullets.map((b) => ({ text: b.text, category: b.category })),
-    sources: sources.slice(0, 5),
+    sources: sources.slice(0, 8),
   };
 }
