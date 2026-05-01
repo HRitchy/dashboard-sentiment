@@ -228,6 +228,11 @@ export default function Dashboard() {
     dailyCacheKey: "dashboard-ai-verdict",
   });
   const aiHasContent = ai.headline.text.length > 0 || ai.bullets.length > 0;
+
+  const refreshAll = useCallback(() => {
+    void fetchData();
+    ai.refresh();
+  }, [ai, fetchData]);
   const aiErrorKind: "missing-key" | "rate-limit" | "transient" | null = ai.error
     ? /ANTHROPIC_API_KEY|clé/i.test(ai.error)
       ? "missing-key"
@@ -575,7 +580,7 @@ export default function Dashboard() {
                 </div>
                 <button
                   className={`refresh-btn ${refreshing ? "spin" : ""}`}
-                  onClick={fetchData}
+                  onClick={refreshAll}
                   disabled={refreshing}
                 >
                   <svg
