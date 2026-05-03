@@ -1043,6 +1043,305 @@ body {
   to { opacity: 1; transform: none; }
 }
 
+/* ============ LECTURE DE MARCHÉ ============ */
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: none; }
+}
+.market-reading {
+  background: color-mix(in oklch, var(--ink) 5%, transparent);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 14px 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.market-reading-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 2px;
+}
+.market-reading-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.market-reading-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.market-reading-item-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.market-reading-item-value {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.conviction-bar-wrap { flex: 1; min-width: 120px; }
+.conviction-bar {
+  height: 5px;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--ink) 12%, transparent);
+  overflow: hidden;
+  margin-top: 6px;
+}
+.conviction-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--c-euphorie);
+  transition: width 0.6s cubic-bezier(.4, 1.4, .5, 1);
+}
+.conviction-score-label {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--ink-2);
+  letter-spacing: 0.02em;
+}
+
+/* ============ BULLET BADGES ============ */
+.bullet-impact {
+  flex-shrink: 0;
+  display: inline-block;
+  padding: 1px 6px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  border-radius: 3px;
+  line-height: 1.4;
+  transform: translateY(-1px);
+  border: 1px solid transparent;
+}
+.bullet-impact--fort {
+  color: var(--c-stress);
+  background: color-mix(in oklch, var(--c-stress) 10%, transparent);
+  border-color: color-mix(in oklch, var(--c-stress) 28%, transparent);
+}
+.bullet-impact--moyen {
+  color: var(--c-calme);
+  background: color-mix(in oklch, var(--c-calme) 10%, transparent);
+  border-color: color-mix(in oklch, var(--c-calme) 28%, transparent);
+}
+.bullet-impact--faible {
+  color: var(--ink-3);
+  background: color-mix(in oklch, var(--ink) 6%, transparent);
+  border-color: color-mix(in oklch, var(--ink) 16%, transparent);
+}
+.bullet-status {
+  flex-shrink: 0;
+  display: inline-block;
+  padding: 1px 6px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  border-radius: 3px;
+  line-height: 1.4;
+  transform: translateY(-1px);
+  background: transparent;
+}
+.bullet-status--confirme {
+  color: var(--c-euphorie);
+  border: 1px solid color-mix(in oklch, var(--c-euphorie) 40%, transparent);
+}
+.bullet-status--surveiller {
+  color: var(--c-stress);
+  border: 1px solid color-mix(in oklch, var(--c-stress) 40%, transparent);
+}
+.bullet-source-link {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: var(--ink-3);
+  opacity: 0.6;
+  cursor: pointer;
+  transform: translateY(-1px);
+  transition: opacity 0.15s ease, color 0.15s ease;
+  text-decoration: none;
+}
+.bullet-source-link:hover { opacity: 1; color: var(--ink-2); }
+.bullet-source-link svg { width: 11px; height: 11px; }
+
+/* ============ CONTEXTE MARCHÉ ACCORDION ============ */
+.market-context { margin: 0 0 16px; }
+.market-context-toggle {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: -0.005em;
+  transition: color 0.15s ease;
+}
+.market-context-toggle:hover { color: var(--ink); }
+.market-context-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s cubic-bezier(0, 1, 0.5, 1);
+}
+.market-context-body.is-open {
+  max-height: 400px;
+  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.market-context-inner {
+  padding: 12px 0 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: slideDown 0.25s ease both;
+}
+.market-context-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+.market-context-row-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  white-space: nowrap;
+  min-width: 100px;
+}
+.market-context-row-value { color: var(--ink-2); font-size: 12px; }
+.sector-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 4px;
+  letter-spacing: -0.005em;
+}
+.sector-pill--up {
+  color: var(--c-euphorie);
+  background: color-mix(in oklch, var(--c-euphorie) 10%, transparent);
+}
+.sector-pill--down {
+  color: var(--c-panique);
+  background: color-mix(in oklch, var(--c-panique) 10%, transparent);
+}
+.megacaps-scroll {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+.megacaps-scroll::-webkit-scrollbar { display: none; }
+.megacap-chip {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  font-size: 11.5px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in oklch, var(--ink) 14%, transparent);
+  background: color-mix(in oklch, var(--ink) 3%, transparent);
+  white-space: nowrap;
+}
+.megacap-chip-ticker {
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--ink);
+  letter-spacing: 0.03em;
+}
+.megacap-chip-delta { font-size: 11px; font-weight: 500; color: var(--c-euphorie); }
+
+/* ============ ENHANCED SOURCES ============ */
+.source-premium-badge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--c-calme);
+  background: color-mix(in oklch, var(--c-calme) 12%, transparent);
+  border: 1px solid color-mix(in oklch, var(--c-calme) 30%, transparent);
+  border-radius: 3px;
+  padding: 1px 4px;
+  line-height: 1.3;
+}
+.source-time {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--ink-3);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+/* ============ À RETENIR CARD ============ */
+.takeaway-card {
+  margin: 16px 0 0;
+  padding: 14px 16px;
+  border-radius: 8px;
+  border-left: 3px solid var(--ink-3);
+  background: color-mix(in oklch, var(--ink) 8%, var(--bg));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.takeaway-card--haussier { border-left-color: var(--c-euphorie); }
+.takeaway-card--baissier { border-left-color: var(--c-panique); }
+.takeaway-card--mitige   { border-left-color: var(--c-calme); }
+.takeaway-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 4px;
+}
+.takeaway-synthese {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.45;
+  margin: 0 0 6px;
+  text-wrap: pretty;
+}
+.takeaway-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ink-2);
+  line-height: 1.4;
+  text-wrap: pretty;
+}
+.takeaway-row-icon { flex-shrink: 0; font-size: 11px; transform: translateY(1px); }
+.takeaway-row-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
 @media (max-width: 960px) {
   .shell { padding: 24px; }
   .indicators { grid-template-columns: 1fr; }
