@@ -17,13 +17,9 @@ import {
   convergence,
   STATE_SENTENCES,
 } from "@/lib/classify";
-import { useAiBulletin } from "@/lib/useAiBulletin";
-import type {
-  BulletinBias,
-  BulletinCategory,
-} from "@/lib/claude";
 import SettingsModal from "./SettingsModal";
 import Speedometer, { type SpeedoZone } from "./Speedometer";
+import NewsTab, { type AiBody } from "./NewsTab";
 
 const VIX_RANGE = { min: 0, max: 50 } as const;
 const VIX_TICKS = [0, 10, 20, 30, 40, 50];
@@ -38,50 +34,6 @@ const NFCI_TICKS = [-2, -1, 0, 1, 2, 3, 4];
 
 function nfciValue(v: number): string {
   return (v >= 0 ? "+" : "") + v.toFixed(3);
-}
-
-function hostname(url: string): string {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return url;
-  }
-}
-
-const BIAS_LABEL: Record<BulletinBias, string> = {
-  HAUSSIER: "Haussier",
-  BAISSIER: "Baissier",
-  MITIGE: "Mitigé",
-};
-
-const CATEGORY_LABEL: Record<BulletinCategory, string> = {
-  MACRO: "Macro",
-  FED: "Fed",
-  RESULTATS: "Résultats",
-  GEO: "Géo",
-  TECH: "Tech",
-  CREDIT: "Crédit",
-  MARCHE: "Marché",
-};
-
-const RELATIVE_TIME_FORMATTER =
-  typeof Intl !== "undefined" && "RelativeTimeFormat" in Intl
-    ? new Intl.RelativeTimeFormat("fr", { numeric: "auto" })
-    : null;
-
-function formatRelative(from: number, now: number): string {
-  const diffSeconds = Math.round((from - now) / 1000);
-  const abs = Math.abs(diffSeconds);
-  if (!RELATIVE_TIME_FORMATTER) {
-    if (abs < 60) return "à l'instant";
-    if (abs < 3600) return `il y a ${Math.round(abs / 60)} min`;
-    if (abs < 86400) return `il y a ${Math.round(abs / 3600)} h`;
-    return `il y a ${Math.round(abs / 86400)} j`;
-  }
-  if (abs < 45) return RELATIVE_TIME_FORMATTER.format(diffSeconds, "second");
-  if (abs < 2700) return RELATIVE_TIME_FORMATTER.format(Math.round(diffSeconds / 60), "minute");
-  if (abs < 86400) return RELATIVE_TIME_FORMATTER.format(Math.round(diffSeconds / 3600), "hour");
-  return RELATIVE_TIME_FORMATTER.format(Math.round(diffSeconds / 86400), "day");
 }
 
 function formatTime(d: Date): string {
@@ -107,7 +59,8 @@ export default function Dashboard() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [payload, setPayload] = useState<SentimentPayload | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [timestamp, setTimestamp] = useState<Date | null>(null);
+  const [hasFetched, setHasFetched] = useState(false);
+  const [clockNow, setClockNow] = useState<Date>(() => new Date());
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>("indicateurs");
 
@@ -172,7 +125,7 @@ export default function Dashboard() {
       if (!res.ok) throw new Error(`API HTTP ${res.status}`);
       const data = (await res.json()) as SentimentPayload;
       setPayload(data);
-      setTimestamp(new Date(data.fetchedAt));
+      setHasFetched(true);
     } catch (err) {
       setFetchError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -185,12 +138,12 @@ export default function Dashboard() {
     void fetchData();
   }, [fetchData]);
 
-  // Live ticking clock on the timestamp pulse.
+  // Live ticking clock — starts once the first fetch succeeds, runs until unmount.
   useEffect(() => {
-    if (!timestamp) return;
-    const id = setInterval(() => setTimestamp(new Date()), 1000);
+    if (!hasFetched) return;
+    const id = setInterval(() => setClockNow(new Date()), 1000);
     return () => clearInterval(id);
-  }, [timestamp == null]);
+  }, [hasFetched]);
 
   const vix = payload?.vix;
   const oas = payload?.hyOas;
@@ -204,7 +157,8 @@ export default function Dashboard() {
 
   const conv = convergence([vixState, oasState, fgState]);
   const finalSentence = conv.state ? STATE_SENTENCES[conv.state] : "État indéterminé.";
-  const aiBody = useMemo(() => {
+
+  const aiBody = useMemo<AiBody | null>(() => {
     if (!apiKeyLoaded) return null;
     return {
       sentiment: conv.state ?? null,
@@ -215,42 +169,7 @@ export default function Dashboard() {
         nfci: nfci?.value ?? null,
       },
     };
-  }, [
-    apiKeyLoaded,
-    conv.state,
-    vix?.value,
-    oas?.value,
-    fg?.value,
-    nfci?.value,
-  ]);
-  const ai = useAiBulletin("/api/ai/verdict", aiBody, {
-    apiKey,
-    dailyCacheKey: "dashboard-ai-verdict",
-  });
-  const aiHasContent = ai.headline.text.length > 0 || ai.bullets.length > 0;
-
-  const aiErrorKind: "missing-key" | "rate-limit" | "transient" | null = ai.error
-    ? /ANTHROPIC_API_KEY|clé/i.test(ai.error)
-      ? "missing-key"
-      : /429|limite/i.test(ai.error)
-        ? "rate-limit"
-        : "transient"
-    : null;
-
-  // Tick once a minute so the "il y a X" label stays fresh without a heavy timer.
-  const [nowTick, setNowTick] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNowTick(Date.now()), 60_000);
-    return () => clearInterval(id);
-  }, []);
-
-  const refreshNews = useCallback(() => {
-    setNowTick(Date.now());
-    ai.refresh();
-  }, [ai]);
-  const freshnessLabel = ai.lastUpdatedAt
-    ? `Mis à jour ${formatRelative(ai.lastUpdatedAt, nowTick)}`
-    : null;
+  }, [apiKeyLoaded, conv.state, vix?.value, oas?.value, fg?.value, nfci?.value]);
 
   // Build a single error banner summarising individual reading failures.
   const errors = [
@@ -339,18 +258,22 @@ export default function Dashboard() {
         {/* Tabs */}
         <div className="tabs" role="tablist" aria-label="Sections du tableau de bord">
           <button
+            id="tab-indicateurs"
             role="tab"
             type="button"
             aria-selected={activeTab === "indicateurs"}
+            aria-controls="tabpanel-indicateurs"
             className={`tab${activeTab === "indicateurs" ? " is-active" : ""}`}
             onClick={() => setActiveTab("indicateurs")}
           >
             Indicateurs
           </button>
           <button
+            id="tab-actualites"
             role="tab"
             type="button"
             aria-selected={activeTab === "actualites"}
+            aria-controls="tabpanel-actualites"
             className={`tab${activeTab === "actualites" ? " is-active" : ""}`}
             onClick={() => setActiveTab("actualites")}
           >
@@ -359,200 +282,21 @@ export default function Dashboard() {
         </div>
 
         {activeTab === "actualites" && (
-          <div
-            className={`verdict-hero ${
-              conv.state ? `panel-${conv.state.toLowerCase()}` : "panel-neutre"
-            }`}
-            role="tabpanel"
-          >
-            <div className="verdict">
-              <div className="fade-in">
-                {payload ? (
-                  <div
-                    className={`ai-commentary${ai.error ? " is-error" : ""}`}
-                    aria-live="polite"
-                    aria-busy={ai.loading}
-                  >
-                    <div className="ai-header-row">
-                      <div className="ai-header-left">
-                        {ai.headline.bias && !ai.error ? (
-                          <span
-                            className={`ai-bias-chip ai-bias-chip--${ai.headline.bias.toLowerCase()}`}
-                            aria-label={`Tendance ${BIAS_LABEL[ai.headline.bias].toLowerCase()}`}
-                          >
-                            {BIAS_LABEL[ai.headline.bias]}
-                          </span>
-                        ) : ai.loading && !aiHasContent ? (
-                          <span className="ai-bias-chip ai-bias-chip--skeleton skeleton" />
-                        ) : null}
-                      </div>
-                      <div className="ai-header-right">
-                        {freshnessLabel && !ai.error && (
-                          <span
-                            className="ai-freshness"
-                            title={
-                              ai.lastUpdatedAt
-                                ? new Date(ai.lastUpdatedAt).toLocaleString("fr-FR")
-                                : undefined
-                            }
-                          >
-                            {freshnessLabel}
-                          </span>
-                        )}
-                        <button
-                          className={`icon-btn ai-refresh-icon ${ai.loading ? "spin" : ""}`}
-                          onClick={refreshNews}
-                          disabled={ai.loading}
-                          aria-label={ai.loading ? "Actualisation en cours" : "Rafraîchir l'IA"}
-                          title="Rafraîchir l'IA"
-                        >
-                          <svg
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                          >
-                            <path d="M3 12a9 9 0 0 1 15.5-6.3L21 8" />
-                            <path d="M21 3v5h-5" />
-                            <path d="M21 12a9 9 0 0 1-15.5 6.3L3 16" />
-                            <path d="M3 21v-5h5" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-
-                    {ai.error ? (
-                      <div className="ai-error-block">
-                        <p className="ai-error-message">
-                          <span aria-hidden="true" className="ai-error-icon">
-                            ⚠
-                          </span>{" "}
-                          {aiErrorKind === "missing-key"
-                            ? "Clé Anthropic manquante ou invalide."
-                            : aiErrorKind === "rate-limit"
-                              ? "Limite de requêtes atteinte. Réessaie dans un instant."
-                              : `Analyse IA indisponible : ${ai.error}`}
-                        </p>
-                        <div className="ai-error-actions">
-                          {aiErrorKind === "missing-key" ? (
-                            <button
-                              className="ai-error-btn"
-                              onClick={() => setSettingsOpen(true)}
-                            >
-                              Ouvrir les paramètres
-                            </button>
-                          ) : (
-                            <button
-                              className="ai-error-btn"
-                              onClick={refreshNews}
-                              disabled={ai.loading}
-                            >
-                              Réessayer
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        {ai.headline.text ? (
-                          <p className="ai-headline">
-                            {ai.headline.text}
-                            {ai.loading && (
-                              <span className="streaming-cursor" aria-hidden="true" />
-                            )}
-                          </p>
-                        ) : ai.loading ? (
-                          <p className="ai-headline ai-headline--skeleton">
-                            <span className="skeleton skeleton-line" style={{ width: "82%" }} />
-                          </p>
-                        ) : null}
-
-                        {ai.bullets.length > 0 ? (
-                          <ul className="ai-bullets">
-                            {ai.bullets.map((b, i) => (
-                              <li key={i}>
-                                {b.category && (
-                                  <span
-                                    className={`bullet-tag bullet-tag--${b.category.toLowerCase()}`}
-                                  >
-                                    {CATEGORY_LABEL[b.category]}
-                                  </span>
-                                )}
-                                <span className="bullet-text">{b.text}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : ai.loading ? (
-                          <ul className="ai-bullets ai-bullets--skeleton" aria-hidden="true">
-                            <li>
-                              <span className="skeleton skeleton-line" style={{ width: "94%" }} />
-                            </li>
-                            <li>
-                              <span className="skeleton skeleton-line" style={{ width: "88%" }} />
-                            </li>
-                            <li>
-                              <span className="skeleton skeleton-line" style={{ width: "76%" }} />
-                            </li>
-                            <li>
-                              <span className="skeleton skeleton-line" style={{ width: "82%" }} />
-                            </li>
-                            <li>
-                              <span className="skeleton skeleton-line" style={{ width: "65%" }} />
-                            </li>
-                          </ul>
-                        ) : null}
-
-                        {ai.sources.length > 0 ? (
-                          <div className="ai-sources">
-                            <span className="ai-sources-label">Sources</span>
-                            <ul className="source-list">
-                              {ai.sources.map((s) => {
-                                const host = hostname(s.url);
-                                return (
-                                  <li key={s.url}>
-                                    <a
-                                      className="source-pill"
-                                      href={s.url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      title={s.title}
-                                    >
-                                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                                      <img
-                                        className="source-favicon"
-                                        src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=32`}
-                                        alt=""
-                                        aria-hidden="true"
-                                        width={14}
-                                        height={14}
-                                        loading="lazy"
-                                      />
-                                      <span>{host}</span>
-                                    </a>
-                                  </li>
-                                );
-                              })}
-                            </ul>
-                          </div>
-                        ) : ai.loading ? (
-                          <div className="ai-sources" aria-hidden="true">
-                            <span className="skeleton skeleton-line" style={{ width: "55%" }} />
-                          </div>
-                        ) : null}
-                      </>
-                    )}
-                  </div>
-                ) : (
-                  <p className="ai-headline">Chargement des données…</p>
-                )}
-              </div>
-            </div>
-          </div>
+          <NewsTab
+            convState={conv.state}
+            dataLoaded={payload !== null}
+            aiBody={aiBody}
+            apiKey={apiKey}
+            onOpenSettings={() => setSettingsOpen(true)}
+          />
         )}
 
         {activeTab === "indicateurs" && (
-          <div role="tabpanel">
+          <div
+            role="tabpanel"
+            id="tabpanel-indicateurs"
+            aria-labelledby="tab-indicateurs"
+          >
             {/* Global verdict — hero */}
             <div
               className={`verdict-hero ${
@@ -577,7 +321,7 @@ export default function Dashboard() {
               <div className="refresh-block">
                 <div className="timestamp">
                   <span className="pulse" />
-                  {timestamp ? formatTime(timestamp) : "—"}
+                  {hasFetched ? formatTime(clockNow) : "—"}
                 </div>
                 <button
                   className={`refresh-btn ${refreshing ? "spin" : ""}`}
@@ -682,7 +426,6 @@ export default function Dashboard() {
             />
           </div>
         )}
-
       </div>
 
       <SettingsModal
