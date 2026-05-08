@@ -90,7 +90,10 @@ export interface BulletinPayload {
   sources: BulletinSource[];
 }
 
-const HEADLINE_PREFIX = /^(?:TITRE|TITLE|HEADLINE)\s*(?:\[([^\]]+)\])?\s*:\s*/i;
+// Anchored: TITRE starts the line (brackets or bare word for bias)
+const HEADLINE_PREFIX = /^(?:TITRE|TITLE|HEADLINE)\s*(?:\[([^\]]+)\]|([A-Za-z]+))?\s*:\s*/i;
+// Non-anchored: TITRE may appear after preamble text on the same line
+const HEADLINE_SEARCH = /(?:TITRE|TITLE|HEADLINE)\s*(?:\[([^\]]+)\]|([A-Za-z]+))?\s*:\s*/i;
 const BULLET_PREFIX = /^[-*•]\s+/;
 const BULLET_TAG = /^\[([^\]]+)\]\s*/;
 
@@ -170,31 +173,50 @@ function parseBulletin(raw: string): ParsedBulletin {
   let headline = "";
   let bias: BulletinBias | null = null;
   const bullets: ParsedBullet[] = [];
-  for (const line of lines) {
-    if (!headline) {
-      const headlineMatch = line.match(HEADLINE_PREFIX);
-      if (headlineMatch) {
-        bias = resolveBias(headlineMatch[1]);
-        headline = line.slice(headlineMatch[0].length).trim();
-      } else {
-        headline = line.trim();
-      }
-      // Some models put the bias inline at the start of the headline body too.
-      if (!bias) {
-        const inlineBias = headline.match(/^\[([^\]]+)\]\s*/);
-        if (inlineBias) {
-          const candidate = resolveBias(inlineBias[1]);
-          if (candidate) {
-            bias = candidate;
-            headline = headline.slice(inlineBias[0].length).trim();
-          }
-        }
-      }
-      continue;
+  let headlineLineIndex = -1;
+
+  // Find the headline line, handling preamble text before TITRE (same line or prior lines)
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const anchored = line.match(HEADLINE_PREFIX);
+    if (anchored) {
+      bias = resolveBias(anchored[1] ?? anchored[2]);
+      headline = line.slice(anchored[0].length).trim();
+      headlineLineIndex = i;
+      break;
     }
-    const m = line.match(BULLET_PREFIX);
+    // TITRE may appear mid-line after preamble text on the same line
+    const mid = line.match(HEADLINE_SEARCH);
+    if (mid && mid.index !== undefined) {
+      bias = resolveBias(mid[1] ?? mid[2]);
+      headline = line.slice(mid.index + mid[0].length).trim();
+      headlineLineIndex = i;
+      break;
+    }
+  }
+
+  // Fallback: no TITRE keyword found anywhere — use the first line as-is
+  if (headlineLineIndex === -1 && lines.length > 0) {
+    headline = lines[0];
+    headlineLineIndex = 0;
+  }
+
+  // Some models put the bias inline at the start of the headline body too.
+  if (!bias && headline) {
+    const inlineBias = headline.match(/^\[([^\]]+)\]\s*/);
+    if (inlineBias) {
+      const candidate = resolveBias(inlineBias[1]);
+      if (candidate) {
+        bias = candidate;
+        headline = headline.slice(inlineBias[0].length).trim();
+      }
+    }
+  }
+
+  for (let i = headlineLineIndex + 1; i < lines.length; i++) {
+    const m = lines[i].match(BULLET_PREFIX);
     if (!m) continue;
-    let text = line.slice(m[0].length).trim();
+    let text = lines[i].slice(m[0].length).trim();
     let category: BulletinCategory | null = null;
     const tagMatch = text.match(BULLET_TAG);
     if (tagMatch) {
