@@ -672,6 +672,12 @@ export default function Sp500Client() {
   return (
     <div className={styles.page}>
       <div className={styles.shell}>
+        <div className={styles.header}>
+          <div className={styles.lastUpdate}>
+            {stats ? `Mis à jour · ${fmtDate(stats.last.t)}` : "— —"}
+          </div>
+        </div>
+
         <div className={styles.topbar}>
           <div className={styles.brand}>
             <Link href="/">Sentiment de Marché</Link>
@@ -685,12 +691,6 @@ export default function Sp500Client() {
           >
             {theme === "light" ? <MoonIcon /> : <SunIcon />}
           </button>
-        </div>
-
-        <div className={styles.header}>
-          <div className={styles.lastUpdate}>
-            {stats ? `Mis à jour · ${fmtDate(stats.last.t)}` : "— —"}
-          </div>
         </div>
 
         {loading && (

@@ -12,8 +12,9 @@
 .topbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 56px;
+  justify-content: flex-end;
+  gap: 24px;
+  margin-bottom: 40px;
 }
 .brand {
   display: flex;
@@ -61,7 +62,7 @@
   justify-content: flex-end;
   align-items: end;
   gap: 24px;
-  margin-bottom: 56px;
+  margin-bottom: 34px;
   padding-bottom: 32px;
   border-bottom: 1px solid var(--line);
 }
