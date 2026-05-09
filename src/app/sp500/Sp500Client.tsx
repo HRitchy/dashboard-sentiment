@@ -14,7 +14,8 @@ import styles from "./page.module.css";
 
 const SYMBOL = "^GSPC";
 const THEME_KEY = "dashboard-theme";
-const API_KEY_KEY = "dashboard-anthropic-key";
+const API_KEY_KEY = "dashboard-openrouter-key";
+const AI_MODEL_KEY = "dashboard-ai-model";
 
 type Theme = "light" | "dark";
 type RangeKey = "6m" | "ytd" | "1y" | "5y" | "10y" | "max";
@@ -556,6 +557,7 @@ export default function Sp500Client() {
   const [theme, setTheme] = useState<Theme>("light");
   const [rangeKey, setRangeKey] = useState<RangeKey>("1y");
   const [apiKey, setApiKey] = useState<string>("");
+  const [aiModel, setAiModel] = useState<string>("");
   const [apiKeyLoaded, setApiKeyLoaded] = useState(false);
   const [data, setData] = useState<{
     points: Point[];
@@ -576,6 +578,8 @@ export default function Sp500Client() {
       if (saved === "dark" || saved === "light") setTheme(saved);
       const savedKey = localStorage.getItem(API_KEY_KEY);
       if (savedKey) setApiKey(savedKey);
+      const savedModel = localStorage.getItem(AI_MODEL_KEY);
+      if (savedModel) setAiModel(savedModel);
     } catch {
       /* ignore */
     } finally {
@@ -709,6 +713,7 @@ export default function Sp500Client() {
   );
   const ai = useAiStream("/api/ai/sp500", aiBody, {
     apiKey,
+    aiModel,
     dailyCacheKey: "sp500-ai-analysis",
   });
 

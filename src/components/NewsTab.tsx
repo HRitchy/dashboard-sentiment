@@ -64,6 +64,7 @@ interface NewsTabProps {
   dataLoaded: boolean;
   aiBody: AiBody | null;
   apiKey: string;
+  aiModel: string;
   onOpenSettings: () => void;
 }
 
@@ -163,17 +164,19 @@ export default function NewsTab({
   dataLoaded,
   aiBody,
   apiKey,
+  aiModel,
   onOpenSettings,
 }: NewsTabProps) {
   const ai = useAiBulletin("/api/ai/verdict", aiBody, {
     apiKey,
+    aiModel,
     dailyCacheKey: "dashboard-ai-verdict",
   });
 
   const aiHasContent = ai.headline.text.length > 0 || ai.bullets.length > 0;
 
   const aiErrorKind: "missing-key" | "rate-limit" | "transient" | null = ai.error
-    ? /ANTHROPIC_API_KEY|clé/i.test(ai.error)
+    ? /OPENROUTER_API_KEY|clé|manquante|invalide|401/i.test(ai.error)
       ? "missing-key"
       : /429|limite/i.test(ai.error)
         ? "rate-limit"
@@ -284,7 +287,7 @@ export default function NewsTab({
                       ⚠
                     </span>{" "}
                     {aiErrorKind === "missing-key"
-                      ? "Clé Anthropic manquante ou invalide."
+                      ? "Clé OpenRouter manquante ou invalide."
                       : aiErrorKind === "rate-limit"
                         ? "Limite de requêtes atteinte. Réessaie dans un instant."
                         : `Analyse IA indisponible : ${ai.error}`}

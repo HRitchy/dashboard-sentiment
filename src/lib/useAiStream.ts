@@ -11,6 +11,7 @@ interface AiStreamState {
 
 interface AiStreamOptions {
   apiKey?: string | null;
+  aiModel?: string | null;
   // When set, the streamed response is persisted in localStorage and reused
   // for the rest of the calendar day. Body changes during the day do NOT
   // trigger a refetch — this keeps token consumption to one call per day.
@@ -53,12 +54,13 @@ export function useAiStream<TBody>(
   body: TBody | null,
   options: AiStreamOptions = {},
 ): AiStreamState {
-  const { apiKey, dailyCacheKey } = options;
+  const { apiKey, aiModel, dailyCacheKey } = options;
 
   // JSON.stringify is stable for the simple bodies we pass in (no functions,
   // no cyclic refs); it lets us key the effect on value rather than identity.
   const bodyKey = body == null ? null : JSON.stringify(body);
   const trimmedKey = apiKey?.trim() || null;
+  const trimmedModel = aiModel?.trim() || null;
 
   // Bumped by `refresh()` to force a re-run even when the daily cache is fresh.
   const [refreshNonce, setRefreshNonce] = useState(0);
@@ -82,8 +84,10 @@ export function useAiStream<TBody>(
   const cacheValidRef = useRef(false);
   const bodyRef = useRef<string | null>(null);
   const apiKeyRef = useRef<string | null>(null);
+  const aiModelRef = useRef<string | null>(null);
   bodyRef.current = bodyKey;
   apiKeyRef.current = trimmedKey;
+  aiModelRef.current = trimmedModel;
 
   // React-recommended pattern for resetting state when an input changes:
   // do it in render, not in an effect. https://react.dev/reference/react/useState
@@ -126,7 +130,9 @@ export function useAiStream<TBody>(
           "Content-Type": "application/json",
         };
         const sendKey = apiKeyRef.current;
-        if (sendKey) headers["x-anthropic-api-key"] = sendKey;
+        if (sendKey) headers["x-openrouter-api-key"] = sendKey;
+        const sendModel = aiModelRef.current;
+        if (sendModel) headers["x-ai-model"] = sendModel;
 
         const res = await fetch(url, {
           method: "POST",

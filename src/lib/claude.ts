@@ -1,49 +1,126 @@
-import Anthropic from "@anthropic-ai/sdk";
+const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
 
-export const MODEL = "claude-sonnet-4-6";
+export const DEFAULT_MODEL = "anthropic/claude-sonnet-4-5";
+
+export const OPENROUTER_MODELS = [
+  { id: "anthropic/claude-sonnet-4-5", label: "Claude Sonnet 4.5" },
+  { id: "anthropic/claude-haiku-4-5-20251001", label: "Claude Haiku 4.5" },
+  { id: "openai/gpt-4o", label: "GPT-4o" },
+  { id: "openai/gpt-4o-mini", label: "GPT-4o mini" },
+  { id: "google/gemini-2.0-flash-001", label: "Gemini 2.0 Flash" },
+  { id: "meta-llama/llama-3.3-70b-instruct", label: "Llama 3.3 70B" },
+  { id: "mistralai/mistral-large", label: "Mistral Large" },
+] as const;
+
+export type OpenRouterModelId = (typeof OPENROUTER_MODELS)[number]["id"];
+
+export class OpenRouterError extends Error {
+  constructor(
+    public readonly status: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = "OpenRouterError";
+  }
+}
 
 const encoder = new TextEncoder();
+
+async function resolveKey(apiKey?: string): Promise<string> {
+  return apiKey || process.env.OPENROUTER_API_KEY || "";
+}
+
+async function throwOnBadStatus(res: Response): Promise<never> {
+  const body = await res.text().catch(() => "");
+  if (res.status === 401 || res.status === 403) {
+    throw new OpenRouterError(res.status, "Clé OpenRouter manquante ou invalide.");
+  }
+  if (res.status === 429) {
+    throw new OpenRouterError(429, "Limite de requêtes atteinte, réessaie dans un instant.");
+  }
+  throw new OpenRouterError(res.status, `Erreur API OpenRouter (${res.status}): ${body}`);
+}
+
+function parseSseLine(line: string): string | null {
+  const trimmed = line.trim();
+  if (!trimmed.startsWith("data:")) return null;
+  const data = trimmed.slice(5).trim();
+  if (data === "[DONE]") return null;
+  try {
+    const parsed = JSON.parse(data) as {
+      choices?: Array<{ delta?: { content?: string } }>;
+    };
+    return parsed.choices?.[0]?.delta?.content ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export function streamText({
   system,
   user,
   maxTokens = 1024,
   apiKey,
-  tools,
+  model = DEFAULT_MODEL,
 }: {
   system: string;
   user: string;
   maxTokens?: number;
   apiKey?: string;
-  tools?: Anthropic.Messages.MessageCreateParams["tools"];
+  model?: string;
 }): ReadableStream<Uint8Array> {
-  const client = apiKey ? new Anthropic({ apiKey }) : new Anthropic();
-  const stream = client.messages.stream({
-    model: MODEL,
-    max_tokens: maxTokens,
-    system,
-    messages: [{ role: "user", content: user }],
-    ...(tools ? { tools } : {}),
-  });
-
   return new ReadableStream<Uint8Array>({
     async start(controller) {
       try {
-        for await (const event of stream) {
-          if (
-            event.type === "content_block_delta" &&
-            event.delta.type === "text_delta"
-          ) {
-            controller.enqueue(encoder.encode(event.delta.text));
+        const key = await resolveKey(apiKey);
+        const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${key}`,
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: "system", content: system },
+              { role: "user", content: user },
+            ],
+            max_tokens: maxTokens,
+            stream: true,
+          }),
+        });
+
+        if (!res.ok) await throwOnBadStatus(res);
+        if (!res.body) throw new Error("Réponse sans corps.");
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        for (;;) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          if (value) {
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop() ?? "";
+            for (const line of lines) {
+              const text = parseSseLine(line);
+              if (text) controller.enqueue(encoder.encode(text));
+            }
+          }
+        }
+        const tail = decoder.decode();
+        if (tail) {
+          for (const line of tail.split("\n")) {
+            const text = parseSseLine(line);
+            if (text) controller.enqueue(encoder.encode(text));
           }
         }
         controller.close();
       } catch (err) {
         controller.error(err);
       }
-    },
-    cancel() {
-      stream.controller.abort();
     },
   });
 }
@@ -175,7 +252,6 @@ function parseBulletin(raw: string): ParsedBulletin {
   const bullets: ParsedBullet[] = [];
   let headlineLineIndex = -1;
 
-  // Find the headline line, handling preamble text before TITRE (same line or prior lines)
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const anchored = line.match(HEADLINE_PREFIX);
@@ -185,7 +261,6 @@ function parseBulletin(raw: string): ParsedBulletin {
       headlineLineIndex = i;
       break;
     }
-    // TITRE may appear mid-line after preamble text on the same line
     const mid = line.match(HEADLINE_SEARCH);
     if (mid && mid.index !== undefined) {
       bias = resolveBias(mid[1] ?? mid[2]);
@@ -195,13 +270,11 @@ function parseBulletin(raw: string): ParsedBulletin {
     }
   }
 
-  // Fallback: no TITRE keyword found anywhere — use the first line as-is
   if (headlineLineIndex === -1 && lines.length > 0) {
     headline = lines[0];
     headlineLineIndex = 0;
   }
 
-  // Some models put the bias inline at the start of the headline body too.
   if (!bias && headline) {
     const inlineBias = headline.match(/^\[([^\]]+)\]\s*/);
     if (inlineBias) {
@@ -231,74 +304,73 @@ function parseBulletin(raw: string): ParsedBulletin {
   return { headline, bias, bullets: bullets.slice(0, 5) };
 }
 
+function writeEvent(
+  controller: ReadableStreamDefaultController<Uint8Array>,
+  event: BulletinEvent,
+) {
+  controller.enqueue(encoder.encode(JSON.stringify(event) + "\n"));
+}
+
 export function streamBulletin({
   system,
   user,
   maxTokens = 768,
   apiKey,
+  model = DEFAULT_MODEL,
 }: {
   system: string;
   user: string;
   maxTokens?: number;
   apiKey?: string;
+  model?: string;
 }): ReadableStream<Uint8Array> {
-  const client = apiKey ? new Anthropic({ apiKey }) : new Anthropic();
-  const stream = client.messages.stream({
-    model: MODEL,
-    max_tokens: maxTokens,
-    system,
-    messages: [{ role: "user", content: user }],
-    tools: [
-      {
-        type: "web_search_20250305",
-        name: "web_search",
-        max_uses: 5,
-      },
-    ],
-  });
-
-  const writeEvent = (
-    controller: ReadableStreamDefaultController<Uint8Array>,
-    event: BulletinEvent,
-  ) => {
-    controller.enqueue(encoder.encode(JSON.stringify(event) + "\n"));
-  };
-
   return new ReadableStream<Uint8Array>({
     async start(controller) {
       try {
-        let fullText = "";
-        const sources: BulletinSource[] = [];
-        const seen = new Set<string>();
-        const addSource = (url: unknown, title: unknown) => {
-          if (typeof url !== "string" || !url || seen.has(url)) return;
-          seen.add(url);
-          sources.push({
-            url,
-            title: typeof title === "string" && title ? title : url,
-          });
-        };
+        const key = await resolveKey(apiKey);
+        const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${key}`,
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: "system", content: system },
+              { role: "user", content: user },
+            ],
+            max_tokens: maxTokens,
+            stream: true,
+          }),
+        });
 
-        for await (const event of stream) {
-          if (event.type === "content_block_start") {
-            const block = event.content_block as { type?: string; content?: unknown };
-            if (block.type === "web_search_tool_result" && Array.isArray(block.content)) {
-              for (const r of block.content as Array<{
-                type?: string;
-                url?: unknown;
-                title?: unknown;
-              }>) {
-                if (r.type === "web_search_result") addSource(r.url, r.title);
-              }
+        if (!res.ok) await throwOnBadStatus(res);
+        if (!res.body) throw new Error("Réponse sans corps.");
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let fullText = "";
+
+        for (;;) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          if (value) {
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop() ?? "";
+            for (const line of lines) {
+              const text = parseSseLine(line);
+              if (text) fullText += text;
             }
-          } else if (event.type === "content_block_delta") {
-            const delta = event.delta as { type?: string; text?: unknown; citation?: unknown };
-            if (delta.type === "text_delta" && typeof delta.text === "string") {
-              fullText += delta.text;
-            } else if (delta.type === "citations_delta" && delta.citation) {
-              const c = delta.citation as { url?: unknown; title?: unknown };
-              addSource(c.url, c.title);
-            }
+          }
+        }
+        const tail = decoder.decode();
+        if (tail) {
+          for (const line of tail.split("\n")) {
+            const text = parseSseLine(line);
+            if (text) fullText += text;
           }
         }
 
@@ -313,17 +385,11 @@ export function streamBulletin({
             category: b.category,
           }),
         );
-        sources.slice(0, 8).forEach((s) =>
-          writeEvent(controller, { type: "source", url: s.url, title: s.title }),
-        );
         writeEvent(controller, { type: "done" });
         controller.close();
       } catch (err) {
         controller.error(err);
       }
-    },
-    cancel() {
-      stream.controller.abort();
     },
   });
 }
@@ -333,54 +399,42 @@ export async function generateBulletin({
   user,
   maxTokens = 1400,
   apiKey,
+  model = DEFAULT_MODEL,
 }: {
   system: string;
   user: string;
   maxTokens?: number;
   apiKey?: string;
+  model?: string;
 }): Promise<BulletinPayload> {
-  const client = apiKey ? new Anthropic({ apiKey }) : new Anthropic();
-
-  const message = await client.messages.create({
-    model: MODEL,
-    max_tokens: maxTokens,
-    system,
-    messages: [{ role: "user", content: user }],
-    tools: [
-      {
-        type: "web_search_20250305",
-        name: "web_search",
-        max_uses: 6,
-      } as unknown as Anthropic.Messages.Tool,
-    ],
+  const key = await resolveKey(apiKey);
+  const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${key}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+      max_tokens: maxTokens,
+      stream: false,
+    }),
   });
 
-  let fullText = "";
-  const sources: BulletinSource[] = [];
-  const seen = new Set<string>();
+  if (!res.ok) await throwOnBadStatus(res);
 
-  const addSource = (url: unknown, title: unknown) => {
-    if (typeof url !== "string" || !url || seen.has(url)) return;
-    seen.add(url);
-    sources.push({ url, title: typeof title === "string" && title ? title : url });
+  const data = (await res.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
   };
-
-  for (const block of message.content) {
-    if (block.type === "text") {
-      fullText += block.text;
-    }
-    const b = block as unknown as Record<string, unknown>;
-    if (b.type === "web_search_tool_result" && Array.isArray(b.content)) {
-      for (const r of b.content as Array<{ type?: string; url?: unknown; title?: unknown }>) {
-        if (r.type === "web_search_result") addSource(r.url, r.title);
-      }
-    }
-  }
-
+  const fullText = data.choices?.[0]?.message?.content ?? "";
   const { headline, bias, bullets } = parseBulletin(fullText);
   return {
     headline: { text: headline, bias },
     bullets: bullets.map((b) => ({ text: b.text, category: b.category })),
-    sources: sources.slice(0, 8),
+    sources: [],
   };
 }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { DEFAULT_THRESHOLDS, type Thresholds } from "@/lib/types";
+import { OPENROUTER_MODELS, DEFAULT_MODEL } from "@/lib/claude";
 
 interface Props {
   open: boolean;
@@ -9,6 +10,8 @@ interface Props {
   onChange: (t: Thresholds) => void;
   apiKey: string;
   onApiKeyChange: (k: string) => void;
+  aiModel: string;
+  onAiModelChange: (m: string) => void;
   onClose: () => void;
 }
 
@@ -18,6 +21,8 @@ export default function SettingsModal({
   onChange,
   apiKey,
   onApiKeyChange,
+  aiModel,
+  onAiModelChange,
   onClose,
 }: Props) {
   const [showKey, setShowKey] = useState(false);
@@ -70,19 +75,19 @@ export default function SettingsModal({
         </div>
 
         <div className="modal-body">
-          {/* Anthropic API key */}
+          {/* OpenRouter API key */}
           <div className="thr-group">
             <div className="thr-head">
-              <span className="thr-name">Clé API Anthropic</span>
+              <span className="thr-name">Clé API OpenRouter</span>
               <span className="thr-src">stockée localement · navigateur</span>
             </div>
             <div className="thr-sub">
               Renseignez votre clé pour activer l&apos;analyse IA (verdict global
               et S&amp;P 500). Elle reste dans le <code>localStorage</code> de ce
               navigateur et n&apos;est transmise qu&apos;à l&apos;API de cette
-              application pour appeler Claude côté serveur.{" "}
+              application côté serveur.{" "}
               <a
-                href="https://console.anthropic.com/settings/keys"
+                href="https://openrouter.ai/keys"
                 target="_blank"
                 rel="noreferrer"
                 className="thr-link"
@@ -98,7 +103,7 @@ export default function SettingsModal({
                   type={showKey ? "text" : "password"}
                   value={apiKey}
                   onChange={(e) => onApiKeyChange(e.target.value)}
-                  placeholder="sk-ant-api03-…"
+                  placeholder="sk-or-v1-…"
                   spellCheck={false}
                   autoComplete="off"
                   autoCapitalize="off"
@@ -125,7 +130,37 @@ export default function SettingsModal({
               <div className="thr-apikey-hint">
                 {apiKey
                   ? "Clé active — l'analyse IA utilise cette clé."
-                  : "Aucune clé renseignée — l'analyse IA utilisera la variable ANTHROPIC_API_KEY du serveur si elle est définie."}
+                  : "Aucune clé renseignée — l'analyse IA utilisera la variable OPENROUTER_API_KEY du serveur si elle est définie."}
+              </div>
+            </div>
+          </div>
+
+          {/* Model selector */}
+          <div className="thr-group">
+            <div className="thr-head">
+              <span className="thr-name">Modèle IA</span>
+              <span className="thr-src">OpenRouter</span>
+            </div>
+            <div className="thr-sub">
+              Choisissez le modèle d&apos;intelligence artificielle utilisé pour
+              générer le bulletin et l&apos;analyse S&amp;P 500.
+            </div>
+            <div className="thr-apikey">
+              <div className="thr-apikey-row">
+                <select
+                  value={aiModel || DEFAULT_MODEL}
+                  onChange={(e) => onAiModelChange(e.target.value)}
+                  style={{ flex: 1 }}
+                >
+                  {OPENROUTER_MODELS.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="thr-apikey-hint">
+                Le modèle sélectionné est utilisé pour toutes les analyses IA de l&apos;application.
               </div>
             </div>
           </div>
