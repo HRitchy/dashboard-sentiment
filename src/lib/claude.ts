@@ -1,17 +1,23 @@
 const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
 
-export const DEFAULT_MODEL = "anthropic/claude-sonnet-4-5";
+export const SEARCH_MODEL = "perplexity/sonar-pro";
+export const STRUCTURING_MODEL = "qwen/qwen3-235b-a22b:free";
+export const DEFAULT_MODEL = STRUCTURING_MODEL;
 
-export const OPENROUTER_MODELS = [
-  { id: "anthropic/claude-sonnet-4-5", label: "Claude Sonnet 4.5" },
-  { id: "anthropic/claude-haiku-4-5-20251001", label: "Claude Haiku 4.5" },
-  { id: "openai/gpt-4o", label: "GPT-4o" },
-  { id: "openai/gpt-4o-mini", label: "GPT-4o mini" },
-  { id: "google/gemini-2.0-flash-001", label: "Gemini 2.0 Flash" },
-  { id: "meta-llama/llama-3.3-70b-instruct", label: "Llama 3.3 70B" },
-  { id: "mistralai/mistral-large", label: "Mistral Large" },
-  { id: "perplexity/sonar", label: "Perplexity Sonar (web)" },
+export const OPENROUTER_PIPELINE = [
+  {
+    id: SEARCH_MODEL,
+    label: "Perplexity Sonar Pro",
+    role: "Recherche web en temps réel avec citations",
+  },
+  {
+    id: STRUCTURING_MODEL,
+    label: "Qwen 3 235B (gratuit)",
+    role: "Traitement et structuration de la réponse",
+  },
 ] as const;
+
+export const OPENROUTER_MODELS = OPENROUTER_PIPELINE;
 
 export type OpenRouterModelId = (typeof OPENROUTER_MODELS)[number]["id"];
 
@@ -40,6 +46,173 @@ async function throwOnBadStatus(res: Response): Promise<never> {
     throw new OpenRouterError(429, "Limite de requêtes atteinte, réessaie dans un instant.");
   }
   throw new OpenRouterError(res.status, `Erreur API OpenRouter (${res.status}): ${body}`);
+}
+
+
+interface ChatCompletionResponse {
+  choices?: Array<{
+    message?: {
+      content?: string;
+      annotations?: unknown;
+    };
+  }>;
+  citations?: unknown;
+  search_results?: unknown;
+}
+
+interface SearchResult {
+  content: string;
+  sources: BulletinSource[];
+}
+
+async function createChatCompletion({
+  system,
+  user,
+  maxTokens,
+  apiKey,
+  model,
+}: {
+  system: string;
+  user: string;
+  maxTokens: number;
+  apiKey?: string;
+  model: string;
+}): Promise<ChatCompletionResponse> {
+  const key = await resolveKey(apiKey);
+  const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${key}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+      max_tokens: maxTokens,
+      stream: false,
+    }),
+  });
+
+  if (!res.ok) await throwOnBadStatus(res);
+  return (await res.json()) as ChatCompletionResponse;
+}
+
+function titleFromUrl(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
+function addSource(
+  map: Map<string, BulletinSource>,
+  url: unknown,
+  title?: unknown,
+) {
+  if (typeof url !== "string") return;
+  const trimmedUrl = url.trim();
+  if (!trimmedUrl || !/^https?:\/\//i.test(trimmedUrl)) return;
+  const trimmedTitle = typeof title === "string" ? title.trim() : "";
+  if (!map.has(trimmedUrl)) {
+    map.set(trimmedUrl, {
+      url: trimmedUrl,
+      title: trimmedTitle || titleFromUrl(trimmedUrl),
+    });
+  }
+}
+
+function collectSourceCandidates(value: unknown, map: Map<string, BulletinSource>) {
+  if (!value) return;
+  if (typeof value === "string") {
+    addSource(map, value);
+    return;
+  }
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectSourceCandidates(item, map));
+    return;
+  }
+  if (typeof value !== "object") return;
+
+  const obj = value as Record<string, unknown>;
+  addSource(
+    map,
+    obj.url ?? obj.link ?? obj.source_url ?? obj.citation_url,
+    obj.title ?? obj.name ?? obj.source ?? obj.hostname,
+  );
+
+  if (obj.url_citation && typeof obj.url_citation === "object") {
+    collectSourceCandidates(obj.url_citation, map);
+  }
+  if (obj.citation && typeof obj.citation === "object") {
+    collectSourceCandidates(obj.citation, map);
+  }
+}
+
+function extractSources(data: ChatCompletionResponse, content: string): BulletinSource[] {
+  const map = new Map<string, BulletinSource>();
+  collectSourceCandidates(data.citations, map);
+  collectSourceCandidates(data.search_results, map);
+  for (const choice of data.choices ?? []) {
+    collectSourceCandidates(choice.message?.annotations, map);
+  }
+
+  for (const match of content.matchAll(/https?:\/\/[^\s)\]}>"']+/gi)) {
+    addSource(map, match[0].replace(/[.,;:]+$/, ""));
+  }
+
+  return Array.from(map.values()).slice(0, 8);
+}
+
+async function researchWithSonarPro({
+  user,
+  apiKey,
+}: {
+  user: string;
+  apiKey?: string;
+}): Promise<SearchResult> {
+  const data = await createChatCompletion({
+    system: [
+      "Tu es un analyste de recherche financière.",
+      "Effectue une recherche web en temps réel sur les catalyseurs les plus récents du S&P 500 et des marchés américains.",
+      "Réponds en français avec des faits datés, des chiffres clés, et des citations/sources vérifiables.",
+      "N'invente aucune donnée : si une information n'est pas confirmée par les sources, écarte-la.",
+    ].join(" "),
+    user: [
+      user,
+      "",
+      "Retourne une synthèse de recherche factuelle et les sources utilisées.",
+    ].join("\n"),
+    maxTokens: 2200,
+    apiKey,
+    model: SEARCH_MODEL,
+  });
+  const content = data.choices?.[0]?.message?.content ?? "";
+  return { content, sources: extractSources(data, content) };
+}
+
+function buildStructuringPrompt(user: string, research: SearchResult): string {
+  const sources = research.sources.length
+    ? research.sources.map((s, i) => `${i + 1}. ${s.title} — ${s.url}`).join("\n")
+    : "Aucune source structurée retournée par l'API ; conserve uniquement les faits cités dans la recherche.";
+
+  return [
+    "Transforme la recherche web ci-dessous en bulletin final en respectant strictement le format demandé par le système.",
+    "Utilise uniquement les faits présents dans la recherche Sonar Pro et le contexte dashboard fourni.",
+    "Ne mentionne pas les sources dans les puces : elles seront affichées séparément par l'application.",
+    "",
+    "Contexte utilisateur :",
+    user,
+    "",
+    "Recherche Sonar Pro :",
+    research.content || "Recherche vide.",
+    "",
+    "Sources détectées :",
+    sources,
+  ].join("\n");
 }
 
 function parseSseLine(line: string): string | null {
@@ -400,7 +573,6 @@ export async function generateBulletin({
   user,
   maxTokens = 1400,
   apiKey,
-  model = DEFAULT_MODEL,
 }: {
   system: string;
   user: string;
@@ -408,34 +580,20 @@ export async function generateBulletin({
   apiKey?: string;
   model?: string;
 }): Promise<BulletinPayload> {
-  const key = await resolveKey(apiKey);
-  const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${key}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
-      max_tokens: maxTokens,
-      stream: false,
-    }),
+  const research = await researchWithSonarPro({ user, apiKey });
+  const data = await createChatCompletion({
+    system,
+    user: buildStructuringPrompt(user, research),
+    maxTokens,
+    apiKey,
+    model: STRUCTURING_MODEL,
   });
 
-  if (!res.ok) await throwOnBadStatus(res);
-
-  const data = (await res.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
   const fullText = data.choices?.[0]?.message?.content ?? "";
   const { headline, bias, bullets } = parseBulletin(fullText);
   return {
     headline: { text: headline, bias },
     bullets: bullets.map((b) => ({ text: b.text, category: b.category })),
-    sources: [],
+    sources: research.sources,
   };
 }

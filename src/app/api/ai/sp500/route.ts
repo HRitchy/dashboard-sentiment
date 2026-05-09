@@ -1,4 +1,4 @@
-import { streamText, OpenRouterError, DEFAULT_MODEL } from "@/lib/claude";
+import { streamText, OpenRouterError, STRUCTURING_MODEL } from "@/lib/claude";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -63,7 +63,6 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   const apiKey = req.headers.get("x-openrouter-api-key")?.trim() || undefined;
-  const model = req.headers.get("x-ai-model")?.trim() || DEFAULT_MODEL;
 
   try {
     const stream = streamText({
@@ -71,7 +70,7 @@ export async function POST(req: Request): Promise<Response> {
       user: buildUserPrompt(body.stats),
       maxTokens: 256,
       apiKey,
-      model,
+      model: STRUCTURING_MODEL,
     });
 
     return new Response(stream, {
