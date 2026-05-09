@@ -96,41 +96,7 @@ body {
   padding: 36px 48px 80px;
 }
 
-/* ============ TOP BAR ============ */
-.topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 0 20px;
-  margin-bottom: 64px;
-  border-bottom: 1px solid var(--line);
-}
-.topbar-actions {
-  display: flex;
-  gap: 8px;
-}
-.topbar-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--ink-2);
-  text-decoration: none;
-  letter-spacing: -0.005em;
-  transition: all 0.15s ease;
-}
-.topbar-link:hover {
-  color: var(--ink);
-  border-color: var(--line-2);
-}
-.topbar-link svg {
-  width: 14px;
-  height: 14px;
-}
+/* ============ ACTION BUTTONS ============ */
 .icon-btn {
   width: 34px;
   height: 34px;
@@ -366,9 +332,28 @@ body {
   font-weight: 500;
   letter-spacing: -0.035em;
   line-height: 1.05;
-  margin: 0 0 28px 0;
+  margin: 0 0 24px 0;
   max-width: 18ch;
   text-wrap: balance;
+}
+.hero-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.hero-action-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  color: var(--ink-2);
+  background: color-mix(in oklch, var(--bg) 36%, transparent);
+  text-decoration: none;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.hero-action-btn svg {
+  width: 18px;
+  height: 18px;
 }
 .verdict-title em {
   font-family: var(--font-serif), serif;
@@ -993,10 +978,6 @@ body {
   .shell {
     padding: 18px 14px 56px;
     overflow-x: hidden;
-  }
-
-  .topbar {
-    margin-bottom: 40px;
   }
 
   .verdict-hero {
