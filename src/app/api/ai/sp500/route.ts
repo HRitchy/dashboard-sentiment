@@ -1,5 +1,4 @@
-import Anthropic from "@anthropic-ai/sdk";
-import { streamText } from "@/lib/claude";
+import { streamText, OpenRouterError, DEFAULT_MODEL } from "@/lib/claude";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -63,7 +62,8 @@ export async function POST(req: Request): Promise<Response> {
     return Response.json({ error: "Champ 'stats' manquant." }, { status: 400 });
   }
 
-  const apiKey = req.headers.get("x-anthropic-api-key")?.trim() || undefined;
+  const apiKey = req.headers.get("x-openrouter-api-key")?.trim() || undefined;
+  const model = req.headers.get("x-ai-model")?.trim() || DEFAULT_MODEL;
 
   try {
     const stream = streamText({
@@ -71,6 +71,7 @@ export async function POST(req: Request): Promise<Response> {
       user: buildUserPrompt(body.stats),
       maxTokens: 256,
       apiKey,
+      model,
     });
 
     return new Response(stream, {
@@ -80,20 +81,20 @@ export async function POST(req: Request): Promise<Response> {
       },
     });
   } catch (err) {
-    if (err instanceof Anthropic.AuthenticationError) {
-      return Response.json(
-        { error: "Clé ANTHROPIC_API_KEY manquante ou invalide." },
-        { status: 500 },
-      );
-    }
-    if (err instanceof Anthropic.RateLimitError) {
-      return Response.json(
-        { error: "Limite de requêtes Claude atteinte, réessaie dans un instant." },
-        { status: 429 },
-      );
-    }
-    if (err instanceof Anthropic.APIError) {
-      return Response.json({ error: `Erreur API Claude (${err.status}).` }, { status: 502 });
+    if (err instanceof OpenRouterError) {
+      if (err.status === 401 || err.status === 403) {
+        return Response.json(
+          { error: "Clé OpenRouter manquante ou invalide." },
+          { status: 401 },
+        );
+      }
+      if (err.status === 429) {
+        return Response.json(
+          { error: "Limite de requêtes atteinte, réessaie dans un instant." },
+          { status: 429 },
+        );
+      }
+      return Response.json({ error: err.message }, { status: 502 });
     }
     return Response.json({ error: "Erreur inattendue." }, { status: 500 });
   }

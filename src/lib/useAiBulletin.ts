@@ -27,6 +27,7 @@ interface CachedEntry {
 
 interface UseAiBulletinOptions {
   apiKey?: string | null;
+  aiModel?: string | null;
   dailyCacheKey?: string | null;
 }
 
@@ -113,10 +114,11 @@ export function useAiBulletin<TBody>(
   body: TBody | null,
   options: UseAiBulletinOptions = {},
 ): BulletinState {
-  const { apiKey, dailyCacheKey } = options;
+  const { apiKey, aiModel, dailyCacheKey } = options;
 
   const bodyKey = body == null ? null : JSON.stringify(body);
   const trimmedKey = apiKey?.trim() || null;
+  const trimmedModel = aiModel?.trim() || null;
 
   const [refreshNonce, setRefreshNonce] = useState(0);
 
@@ -138,8 +140,10 @@ export function useAiBulletin<TBody>(
   const cacheValidRef = useRef(false);
   const bodyRef = useRef<string | null>(null);
   const apiKeyRef = useRef<string | null>(null);
+  const aiModelRef = useRef<string | null>(null);
   bodyRef.current = bodyKey;
   apiKeyRef.current = trimmedKey;
+  aiModelRef.current = trimmedModel;
 
   if (reactKey !== lastReactKey) {
     setLastReactKey(reactKey);
@@ -216,7 +220,9 @@ export function useAiBulletin<TBody>(
           "Content-Type": "application/json",
         };
         const sendKey = apiKeyRef.current;
-        if (sendKey) headers["x-anthropic-api-key"] = sendKey;
+        if (sendKey) headers["x-openrouter-api-key"] = sendKey;
+        const sendModel = aiModelRef.current;
+        if (sendModel) headers["x-ai-model"] = sendModel;
 
         const res = await fetch(url, {
           method: "POST",

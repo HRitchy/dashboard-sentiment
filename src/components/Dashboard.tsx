@@ -47,7 +47,8 @@ function formatTime(d: Date): string {
 
 const STORAGE_KEY = "dashboard-thresholds";
 const THEME_KEY = "dashboard-theme";
-const API_KEY_KEY = "dashboard-anthropic-key";
+const API_KEY_KEY = "dashboard-openrouter-key";
+const AI_MODEL_KEY = "dashboard-ai-model";
 
 type TabKey = "indicateurs" | "actualites";
 
@@ -55,6 +56,7 @@ export default function Dashboard() {
   const [thresholds, setThresholds] = useState<Thresholds>(DEFAULT_THRESHOLDS);
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [apiKey, setApiKey] = useState<string>("");
+  const [aiModel, setAiModel] = useState<string>("");
   const [apiKeyLoaded, setApiKeyLoaded] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [payload, setPayload] = useState<SentimentPayload | null>(null);
@@ -80,6 +82,8 @@ export default function Dashboard() {
       if (savedTheme === "dark" || savedTheme === "light") setTheme(savedTheme);
       const savedKey = localStorage.getItem(API_KEY_KEY);
       if (savedKey) setApiKey(savedKey);
+      const savedModel = localStorage.getItem(AI_MODEL_KEY);
+      if (savedModel) setAiModel(savedModel);
     } catch {
       /* ignore */
     } finally {
@@ -106,6 +110,17 @@ export default function Dashboard() {
       /* ignore */
     }
   }, [apiKey, apiKeyLoaded]);
+
+  // Persist AI model.
+  useEffect(() => {
+    if (!apiKeyLoaded) return;
+    try {
+      if (aiModel) localStorage.setItem(AI_MODEL_KEY, aiModel);
+      else localStorage.removeItem(AI_MODEL_KEY);
+    } catch {
+      /* ignore */
+    }
+  }, [aiModel, apiKeyLoaded]);
 
   // Sync theme attribute + persist.
   useEffect(() => {
@@ -287,6 +302,7 @@ export default function Dashboard() {
             dataLoaded={payload !== null}
             aiBody={aiBody}
             apiKey={apiKey}
+            aiModel={aiModel}
             onOpenSettings={() => setSettingsOpen(true)}
           />
         )}
@@ -434,6 +450,8 @@ export default function Dashboard() {
         onChange={setThresholds}
         apiKey={apiKey}
         onApiKeyChange={setApiKey}
+        aiModel={aiModel}
+        onAiModelChange={setAiModel}
         onClose={() => setSettingsOpen(false)}
       />
     </>

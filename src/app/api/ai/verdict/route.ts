@@ -1,5 +1,4 @@
-import Anthropic from "@anthropic-ai/sdk";
-import { generateBulletin } from "@/lib/claude";
+import { generateBulletin, OpenRouterError, DEFAULT_MODEL } from "@/lib/claude";
 import type { BulletinPayload, BulletinEvent } from "@/lib/claude";
 
 export const dynamic = "force-dynamic";
@@ -7,7 +6,7 @@ export const revalidate = 0;
 
 const SYSTEM_PROMPT = `Tu es un assistant financier sobre et factuel, qui s'adresse en français à un investisseur particulier suivant un dashboard de sentiment de marché.
 
-Tu disposes de l'outil web_search : utilise-le systématiquement (4 à 6 requêtes) pour récupérer l'actualité récente de l'indice S&P 500 aux États-Unis avant de répondre, afin de dégager la tendance dominante des dernières séances.
+En te basant sur tes connaissances financières récentes, analyse la situation actuelle de l'indice S&P 500 aux États-Unis pour dégager la tendance dominante des dernières séances.
 
 Tu dois produire un bulletin court et structuré au format suivant, EXACTEMENT, sans rien ajouter avant ou après :
 
@@ -20,7 +19,7 @@ TITRE [HAUSSIER|BAISSIER|MITIGE]: <une phrase de synthèse de la tendance domina
 
 Le tag entre crochets après TITRE doit être exactement HAUSSIER, BAISSIER ou MITIGE (sans accent, en majuscules), choisi selon le biais dominant. Le tag entre crochets en tête de chaque puce doit être l'une des sept catégories listées (Macro, Fed, Resultats, Geo, Tech, Credit, Marche), choisie selon le thème principal de la puce. Catégories : Macro = inflation, croissance, emploi ; Fed = politique monétaire, taux ; Resultats = earnings d'entreprises ; Geo = géopolitique, élections ; Tech = secteur tech, IA ; Credit = obligations, spreads, crédit ; Marche = flux, positionnement, réaction de marché.
 
-Contraintes : pas de markdown autre que les tirets de liste et les crochets de tags, pas de titres, pas de mention de l'IA ni des sources dans le texte (les sources sont gérées par l'application), pas d'émoji, pas de disclaimer, aucune recommandation d'allocation ni pourcentage d'exposition actions. Reste neutre et professionnel. Utilise un français correct et compact.`;
+Contraintes : pas de markdown autre que les tirets de liste et les crochets de tags, pas de titres, pas de mention de l'IA ni des sources dans le texte, pas d'émoji, pas de disclaimer, aucune recommandation d'allocation ni pourcentage d'exposition actions. Reste neutre et professionnel. Utilise un français correct et compact.`;
 
 const SENTIMENT_LABEL: Record<string, string> = {
   EUPHORIE: "euphorie (marché très optimiste)",
@@ -95,7 +94,8 @@ function serializePayload(payload: BulletinPayload): string {
 }
 
 export async function POST(req: Request): Promise<Response> {
-  const apiKey = req.headers.get("x-anthropic-api-key")?.trim() || undefined;
+  const apiKey = req.headers.get("x-openrouter-api-key")?.trim() || undefined;
+  const model = req.headers.get("x-ai-model")?.trim() || DEFAULT_MODEL;
   const body = await readBody(req);
   const userPrompt = buildUserPrompt(body);
 
@@ -105,6 +105,7 @@ export async function POST(req: Request): Promise<Response> {
       user: userPrompt,
       maxTokens: 1400,
       apiKey,
+      model,
     });
 
     return new Response(serializePayload(payload), {
@@ -114,20 +115,17 @@ export async function POST(req: Request): Promise<Response> {
       },
     });
   } catch (err) {
-    if (err instanceof Anthropic.AuthenticationError) {
-      return Response.json(
-        { error: "Clé ANTHROPIC_API_KEY manquante ou invalide." },
-        { status: 500 },
-      );
-    }
-    if (err instanceof Anthropic.RateLimitError) {
-      return Response.json(
-        { error: "Limite de requêtes Claude atteinte, réessaie dans un instant." },
-        { status: 429 },
-      );
-    }
-    if (err instanceof Anthropic.APIError) {
-      return Response.json({ error: `Erreur API Claude (${err.status}).` }, { status: 502 });
+    if (err instanceof OpenRouterError) {
+      if (err.status === 401 || err.status === 403) {
+        return Response.json({ error: "Clé OpenRouter manquante ou invalide." }, { status: 401 });
+      }
+      if (err.status === 429) {
+        return Response.json(
+          { error: "Limite de requêtes atteinte, réessaie dans un instant." },
+          { status: 429 },
+        );
+      }
+      return Response.json({ error: err.message }, { status: 502 });
     }
     return Response.json({ error: "Erreur inattendue." }, { status: 500 });
   }
