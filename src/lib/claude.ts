@@ -10,6 +10,7 @@ export const OPENROUTER_MODELS = [
   { id: "google/gemini-2.0-flash-001", label: "Gemini 2.0 Flash" },
   { id: "meta-llama/llama-3.3-70b-instruct", label: "Llama 3.3 70B" },
   { id: "mistralai/mistral-large", label: "Mistral Large" },
+  { id: "perplexity/sonar", label: "Perplexity Sonar (web)" },
 ] as const;
 
 export type OpenRouterModelId = (typeof OPENROUTER_MODELS)[number]["id"];
