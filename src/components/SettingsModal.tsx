@@ -141,7 +141,7 @@ export default function SettingsModal({
             </div>
             <div className="thr-sub">
               Le bulletin d&apos;actualité utilise désormais Sonar Pro pour la
-              recherche web en temps réel, puis Qwen 3 235B gratuit pour
+              recherche web en temps réel, puis Qwen 3 235B Instruct 2507 pour
               structurer la réponse finale.
             </div>
             <div className="thr-apikey">
