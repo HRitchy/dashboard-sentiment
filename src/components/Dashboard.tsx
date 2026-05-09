@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   DEFAULT_THRESHOLDS,
   NFCI_RANGE,
@@ -19,7 +19,6 @@ import {
 } from "@/lib/classify";
 import SettingsModal from "./SettingsModal";
 import Speedometer, { type SpeedoZone } from "./Speedometer";
-import NewsTab, { type AiBody } from "./NewsTab";
 
 const VIX_RANGE = { min: 0, max: 50 } as const;
 const VIX_TICKS = [0, 10, 20, 30, 40, 50];
@@ -47,49 +46,44 @@ function formatTime(d: Date): string {
 
 const STORAGE_KEY = "dashboard-thresholds";
 const THEME_KEY = "dashboard-theme";
-const API_KEY_KEY = "dashboard-openrouter-key";
-const AI_MODEL_KEY = "dashboard-ai-model";
 
-type TabKey = "indicateurs" | "actualites";
+function loadThresholds(): Thresholds {
+  if (typeof window === "undefined") return DEFAULT_THRESHOLDS;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return DEFAULT_THRESHOLDS;
+    const parsed = JSON.parse(raw) as Partial<Thresholds>;
+    return {
+      vix: { ...DEFAULT_THRESHOLDS.vix, ...(parsed.vix ?? {}) },
+      oas: { ...DEFAULT_THRESHOLDS.oas, ...(parsed.oas ?? {}) },
+      fg: { ...DEFAULT_THRESHOLDS.fg, ...(parsed.fg ?? {}) },
+    };
+  } catch {
+    return DEFAULT_THRESHOLDS;
+  }
+}
+
+function loadTheme(): "light" | "dark" {
+  if (typeof window === "undefined") return "light";
+  try {
+    const savedTheme = localStorage.getItem(THEME_KEY);
+    return savedTheme === "dark" || savedTheme === "light"
+      ? savedTheme
+      : "light";
+  } catch {
+    return "light";
+  }
+}
 
 export default function Dashboard() {
-  const [thresholds, setThresholds] = useState<Thresholds>(DEFAULT_THRESHOLDS);
-  const [theme, setTheme] = useState<"light" | "dark">("light");
-  const [apiKey, setApiKey] = useState<string>("");
-  const [aiModel, setAiModel] = useState<string>("");
-  const [apiKeyLoaded, setApiKeyLoaded] = useState(false);
+  const [thresholds, setThresholds] = useState<Thresholds>(loadThresholds);
+  const [theme, setTheme] = useState<"light" | "dark">(loadTheme);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [payload, setPayload] = useState<SentimentPayload | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
   const [clockNow, setClockNow] = useState<Date>(() => new Date());
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<TabKey>("indicateurs");
-
-  // Load persisted thresholds + theme + API key on mount (client-only).
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as Partial<Thresholds>;
-        setThresholds({
-          vix: { ...DEFAULT_THRESHOLDS.vix, ...(parsed.vix ?? {}) },
-          oas: { ...DEFAULT_THRESHOLDS.oas, ...(parsed.oas ?? {}) },
-          fg: { ...DEFAULT_THRESHOLDS.fg, ...(parsed.fg ?? {}) },
-        });
-      }
-      const savedTheme = localStorage.getItem(THEME_KEY);
-      if (savedTheme === "dark" || savedTheme === "light") setTheme(savedTheme);
-      const savedKey = localStorage.getItem(API_KEY_KEY);
-      if (savedKey) setApiKey(savedKey);
-      const savedModel = localStorage.getItem(AI_MODEL_KEY);
-      if (savedModel) setAiModel(savedModel);
-    } catch {
-      /* ignore */
-    } finally {
-      setApiKeyLoaded(true);
-    }
-  }, []);
 
   // Persist thresholds.
   useEffect(() => {
@@ -99,28 +93,6 @@ export default function Dashboard() {
       /* ignore */
     }
   }, [thresholds]);
-
-  // Persist API key (skip until first load is done so we don't overwrite it).
-  useEffect(() => {
-    if (!apiKeyLoaded) return;
-    try {
-      if (apiKey) localStorage.setItem(API_KEY_KEY, apiKey);
-      else localStorage.removeItem(API_KEY_KEY);
-    } catch {
-      /* ignore */
-    }
-  }, [apiKey, apiKeyLoaded]);
-
-  // Persist AI model.
-  useEffect(() => {
-    if (!apiKeyLoaded) return;
-    try {
-      if (aiModel) localStorage.setItem(AI_MODEL_KEY, aiModel);
-      else localStorage.removeItem(AI_MODEL_KEY);
-    } catch {
-      /* ignore */
-    }
-  }, [aiModel, apiKeyLoaded]);
 
   // Sync theme attribute + persist.
   useEffect(() => {
@@ -150,7 +122,7 @@ export default function Dashboard() {
 
   // Initial fetch on mount.
   useEffect(() => {
-    void fetchData();
+    queueMicrotask(() => void fetchData());
   }, [fetchData]);
 
   // Live ticking clock — starts once the first fetch succeeds, runs until unmount.
@@ -171,20 +143,9 @@ export default function Dashboard() {
   const nfciState = classifyNfci(nfci?.value ?? null);
 
   const conv = convergence([vixState, oasState, fgState]);
-  const finalSentence = conv.state ? STATE_SENTENCES[conv.state] : "État indéterminé.";
-
-  const aiBody = useMemo<AiBody | null>(() => {
-    if (!apiKeyLoaded) return null;
-    return {
-      sentiment: conv.state ?? null,
-      indicators: {
-        vix: vix?.value ?? null,
-        hyOas: oas?.value ?? null,
-        fearGreed: fg?.value ?? null,
-        nfci: nfci?.value ?? null,
-      },
-    };
-  }, [apiKeyLoaded, conv.state, vix?.value, oas?.value, fg?.value, nfci?.value]);
+  const finalSentence = conv.state
+    ? STATE_SENTENCES[conv.state]
+    : "État indéterminé.";
 
   // Build a single error banner summarising individual reading failures.
   const errors = [
@@ -270,188 +231,217 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Tabs */}
-        <div className="tabs" role="tablist" aria-label="Sections du tableau de bord">
-          <button
-            id="tab-indicateurs"
-            role="tab"
-            type="button"
-            aria-selected={activeTab === "indicateurs"}
-            aria-controls="tabpanel-indicateurs"
-            className={`tab${activeTab === "indicateurs" ? " is-active" : ""}`}
-            onClick={() => setActiveTab("indicateurs")}
-          >
-            Indicateurs
-          </button>
-          <button
-            id="tab-actualites"
-            role="tab"
-            type="button"
-            aria-selected={activeTab === "actualites"}
-            aria-controls="tabpanel-actualites"
-            className={`tab${activeTab === "actualites" ? " is-active" : ""}`}
-            onClick={() => setActiveTab("actualites")}
-          >
-            Actualités
-          </button>
-        </div>
-
-        {activeTab === "actualites" && (
-          <NewsTab
-            convState={conv.state}
-            dataLoaded={payload !== null}
-            aiBody={aiBody}
-            apiKey={apiKey}
-            aiModel={aiModel}
-            onOpenSettings={() => setSettingsOpen(true)}
-          />
-        )}
-
-        {activeTab === "indicateurs" && (
+        <div>
+          {/* Global verdict — hero */}
           <div
-            role="tabpanel"
-            id="tabpanel-indicateurs"
-            aria-labelledby="tab-indicateurs"
+            className={`verdict-hero ${
+              conv.state ? `panel-${conv.state.toLowerCase()}` : "panel-neutre"
+            }`}
           >
-            {/* Global verdict — hero */}
-            <div
-              className={`verdict-hero ${
-                conv.state ? `panel-${conv.state.toLowerCase()}` : "panel-neutre"
-              }`}
-            >
-              <div className="verdict" key={finalSentence}>
-                <div className="fade-in">
-                  <h2
-                    className={`verdict-title ${
-                      conv.state ? `w-${conv.state.toLowerCase()}` : ""
-                    }`}
-                  >
-                    {conv.state ? finalSentence : <em>{finalSentence}</em>}
-                  </h2>
-                </div>
-              </div>
-            </div>
-
-            {/* Header */}
-            <div className="header">
-              <div className="refresh-block">
-                <div className="timestamp">
-                  <span className="pulse" />
-                  {hasFetched ? formatTime(clockNow) : "—"}
-                </div>
-                <button
-                  className={`refresh-btn ${refreshing ? "spin" : ""}`}
-                  onClick={fetchData}
-                  disabled={refreshing}
+            <div className="verdict" key={finalSentence}>
+              <div className="fade-in">
+                <h2
+                  className={`verdict-title ${
+                    conv.state ? `w-${conv.state.toLowerCase()}` : ""
+                  }`}
                 >
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  >
-                    <path d="M3 12a9 9 0 0 1 15.5-6.3L21 8" />
-                    <path d="M21 3v5h-5" />
-                    <path d="M21 12a9 9 0 0 1-15.5 6.3L3 16" />
-                    <path d="M3 21v-5h5" />
-                  </svg>
-                  {refreshing ? "Actualisation" : "Actualiser"}
-                </button>
+                  {conv.state ? finalSentence : <em>{finalSentence}</em>}
+                </h2>
               </div>
             </div>
+          </div>
 
-            {/* Indicator speedometers — VIX / HY OAS / Fear & Greed */}
-            <div className="speedos-row">
-              <Speedometer
-                name="VIX"
-                source={vix?.source ?? "^VIX · CBOE"}
-                value={vix?.value ?? null}
-                range={VIX_RANGE}
-                ticks={VIX_TICKS}
-                zones={[
-                  { from: VIX_RANGE.min, to: thresholds.vix.euphorie, cls: "seg-euphorie" },
-                  { from: thresholds.vix.euphorie, to: thresholds.vix.calme, cls: "seg-calme" },
-                  { from: thresholds.vix.calme, to: thresholds.vix.stress, cls: "seg-stress" },
-                  { from: thresholds.vix.stress, to: VIX_RANGE.max, cls: "seg-panique" },
-                ] satisfies SpeedoZone[]}
-                formatValue={(v) => v.toFixed(2)}
-                loading={refreshing && !payload}
-                error={vix?.error}
-                state={vixState}
-                compact
-              />
-              <Speedometer
-                name="HY OAS"
-                source={oas?.source ?? "BAMLH0A0HYM2 · FRED"}
-                value={oas?.value ?? null}
-                range={OAS_RANGE}
-                ticks={OAS_TICKS}
-                zones={[
-                  { from: OAS_RANGE.min, to: thresholds.oas.euphorie, cls: "seg-euphorie" },
-                  { from: thresholds.oas.euphorie, to: thresholds.oas.calme, cls: "seg-calme" },
-                  { from: thresholds.oas.calme, to: thresholds.oas.stress, cls: "seg-stress" },
-                  { from: thresholds.oas.stress, to: OAS_RANGE.max, cls: "seg-panique" },
-                ] satisfies SpeedoZone[]}
-                formatValue={(v) => `${v.toFixed(2)}%`}
-                asOf={oas?.asOf ?? null}
-                loading={refreshing && !payload}
-                error={oas?.error}
-                state={oasState}
-                compact
-              />
-              <Speedometer
-                name="Fear & Greed"
-                source={fg?.source ?? "CNN · 0–100"}
-                value={fg?.value ?? null}
-                range={FG_RANGE}
-                ticks={FG_TICKS}
-                zones={[
-                  { from: FG_RANGE.min, to: thresholds.fg.panique, cls: "seg-panique" },
-                  { from: thresholds.fg.panique, to: thresholds.fg.stress, cls: "seg-stress" },
-                  { from: thresholds.fg.stress, to: thresholds.fg.neutre, cls: "seg-neutre" },
-                  { from: thresholds.fg.neutre, to: thresholds.fg.calme, cls: "seg-calme" },
-                  { from: thresholds.fg.calme, to: FG_RANGE.max, cls: "seg-euphorie" },
-                ] satisfies SpeedoZone[]}
-                formatValue={(v) => v.toFixed(0)}
-                loading={refreshing && !payload}
-                error={fg?.error}
-                state={fgState}
-                compact
-              />
+          {/* Header */}
+          <div className="header">
+            <div className="refresh-block">
+              <div className="timestamp">
+                <span className="pulse" />
+                {hasFetched ? formatTime(clockNow) : "—"}
+              </div>
+              <button
+                className={`refresh-btn ${refreshing ? "spin" : ""}`}
+                onClick={fetchData}
+                disabled={refreshing}
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                >
+                  <path d="M3 12a9 9 0 0 1 15.5-6.3L21 8" />
+                  <path d="M21 3v5h-5" />
+                  <path d="M21 12a9 9 0 0 1-15.5 6.3L3 16" />
+                  <path d="M3 21v-5h5" />
+                </svg>
+                {refreshing ? "Actualisation" : "Actualiser"}
+              </button>
             </div>
+          </div>
 
-            {/* Market conditions speedometer (NFCI) */}
+          {/* Indicator speedometers — VIX / HY OAS / Fear & Greed */}
+          <div className="speedos-row">
             <Speedometer
-              name="Conditions de marché"
-              source={nfci?.source ?? "FRED · NFCI"}
-              value={nfci?.value ?? null}
-              range={NFCI_RANGE}
-              ticks={NFCI_TICKS}
-              zones={[
-                { from: NFCI_RANGE.min, to: NFCI_THRESHOLDS.calme, cls: "seg-euphorie" },
-                { from: NFCI_THRESHOLDS.calme, to: NFCI_THRESHOLDS.normal, cls: "seg-neutre" },
-                { from: NFCI_THRESHOLDS.normal, to: NFCI_THRESHOLDS.stress, cls: "seg-stress" },
-                { from: NFCI_THRESHOLDS.stress, to: NFCI_RANGE.max, cls: "seg-panique" },
-              ] satisfies SpeedoZone[]}
-              formatValue={nfciValue}
-              asOf={nfci?.asOf ?? null}
+              name="VIX"
+              source={vix?.source ?? "^VIX · CBOE"}
+              value={vix?.value ?? null}
+              range={VIX_RANGE}
+              ticks={VIX_TICKS}
+              zones={
+                [
+                  {
+                    from: VIX_RANGE.min,
+                    to: thresholds.vix.euphorie,
+                    cls: "seg-euphorie",
+                  },
+                  {
+                    from: thresholds.vix.euphorie,
+                    to: thresholds.vix.calme,
+                    cls: "seg-calme",
+                  },
+                  {
+                    from: thresholds.vix.calme,
+                    to: thresholds.vix.stress,
+                    cls: "seg-stress",
+                  },
+                  {
+                    from: thresholds.vix.stress,
+                    to: VIX_RANGE.max,
+                    cls: "seg-panique",
+                  },
+                ] satisfies SpeedoZone[]
+              }
+              formatValue={(v) => v.toFixed(2)}
               loading={refreshing && !payload}
-              error={nfci?.error}
-              state={nfciState}
+              error={vix?.error}
+              state={vixState}
+              compact
+            />
+            <Speedometer
+              name="HY OAS"
+              source={oas?.source ?? "BAMLH0A0HYM2 · FRED"}
+              value={oas?.value ?? null}
+              range={OAS_RANGE}
+              ticks={OAS_TICKS}
+              zones={
+                [
+                  {
+                    from: OAS_RANGE.min,
+                    to: thresholds.oas.euphorie,
+                    cls: "seg-euphorie",
+                  },
+                  {
+                    from: thresholds.oas.euphorie,
+                    to: thresholds.oas.calme,
+                    cls: "seg-calme",
+                  },
+                  {
+                    from: thresholds.oas.calme,
+                    to: thresholds.oas.stress,
+                    cls: "seg-stress",
+                  },
+                  {
+                    from: thresholds.oas.stress,
+                    to: OAS_RANGE.max,
+                    cls: "seg-panique",
+                  },
+                ] satisfies SpeedoZone[]
+              }
+              formatValue={(v) => `${v.toFixed(2)}%`}
+              asOf={oas?.asOf ?? null}
+              loading={refreshing && !payload}
+              error={oas?.error}
+              state={oasState}
+              compact
+            />
+            <Speedometer
+              name="Fear & Greed"
+              source={fg?.source ?? "CNN · 0–100"}
+              value={fg?.value ?? null}
+              range={FG_RANGE}
+              ticks={FG_TICKS}
+              zones={
+                [
+                  {
+                    from: FG_RANGE.min,
+                    to: thresholds.fg.panique,
+                    cls: "seg-panique",
+                  },
+                  {
+                    from: thresholds.fg.panique,
+                    to: thresholds.fg.stress,
+                    cls: "seg-stress",
+                  },
+                  {
+                    from: thresholds.fg.stress,
+                    to: thresholds.fg.neutre,
+                    cls: "seg-neutre",
+                  },
+                  {
+                    from: thresholds.fg.neutre,
+                    to: thresholds.fg.calme,
+                    cls: "seg-calme",
+                  },
+                  {
+                    from: thresholds.fg.calme,
+                    to: FG_RANGE.max,
+                    cls: "seg-euphorie",
+                  },
+                ] satisfies SpeedoZone[]
+              }
+              formatValue={(v) => v.toFixed(0)}
+              loading={refreshing && !payload}
+              error={fg?.error}
+              state={fgState}
+              compact
             />
           </div>
-        )}
+
+          {/* Market conditions speedometer (NFCI) */}
+          <Speedometer
+            name="Conditions de marché"
+            source={nfci?.source ?? "FRED · NFCI"}
+            value={nfci?.value ?? null}
+            range={NFCI_RANGE}
+            ticks={NFCI_TICKS}
+            zones={
+              [
+                {
+                  from: NFCI_RANGE.min,
+                  to: NFCI_THRESHOLDS.calme,
+                  cls: "seg-euphorie",
+                },
+                {
+                  from: NFCI_THRESHOLDS.calme,
+                  to: NFCI_THRESHOLDS.normal,
+                  cls: "seg-neutre",
+                },
+                {
+                  from: NFCI_THRESHOLDS.normal,
+                  to: NFCI_THRESHOLDS.stress,
+                  cls: "seg-stress",
+                },
+                {
+                  from: NFCI_THRESHOLDS.stress,
+                  to: NFCI_RANGE.max,
+                  cls: "seg-panique",
+                },
+              ] satisfies SpeedoZone[]
+            }
+            formatValue={nfciValue}
+            asOf={nfci?.asOf ?? null}
+            loading={refreshing && !payload}
+            error={nfci?.error}
+            state={nfciState}
+          />
+        </div>
       </div>
 
       <SettingsModal
         open={settingsOpen}
         thresholds={thresholds}
         onChange={setThresholds}
-        apiKey={apiKey}
-        onApiKeyChange={setApiKey}
-        aiModel={aiModel}
-        onAiModelChange={setAiModel}
         onClose={() => setSettingsOpen(false)}
       />
     </>

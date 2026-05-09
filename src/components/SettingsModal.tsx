@@ -1,17 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import { DEFAULT_THRESHOLDS, type Thresholds } from "@/lib/types";
-import { OPENROUTER_PIPELINE } from "@/lib/claude";
 
 interface Props {
   open: boolean;
   thresholds: Thresholds;
   onChange: (t: Thresholds) => void;
-  apiKey: string;
-  onApiKeyChange: (k: string) => void;
-  aiModel: string;
-  onAiModelChange: (m: string) => void;
   onClose: () => void;
 }
 
@@ -19,12 +13,8 @@ export default function SettingsModal({
   open,
   thresholds,
   onChange,
-  apiKey,
-  onApiKeyChange,
   onClose,
 }: Props) {
-  const [showKey, setShowKey] = useState(false);
-
   function setVix(key: keyof Thresholds["vix"], val: number) {
     onChange({ ...thresholds, vix: { ...thresholds.vix, [key]: val } });
   }
@@ -73,88 +63,6 @@ export default function SettingsModal({
         </div>
 
         <div className="modal-body">
-          {/* OpenRouter API key */}
-          <div className="thr-group">
-            <div className="thr-head">
-              <span className="thr-name">Clé API OpenRouter</span>
-              <span className="thr-src">stockée localement · navigateur</span>
-            </div>
-            <div className="thr-sub">
-              Renseignez votre clé pour activer l&apos;analyse IA (verdict global
-              et S&amp;P 500). Elle reste dans le <code>localStorage</code> de ce
-              navigateur et n&apos;est transmise qu&apos;à l&apos;API de cette
-              application côté serveur.{" "}
-              <a
-                href="https://openrouter.ai/keys"
-                target="_blank"
-                rel="noreferrer"
-                className="thr-link"
-              >
-                Obtenir une clé
-              </a>
-              .
-            </div>
-
-            <div className="thr-apikey">
-              <div className="thr-apikey-row">
-                <input
-                  type={showKey ? "text" : "password"}
-                  value={apiKey}
-                  onChange={(e) => onApiKeyChange(e.target.value)}
-                  placeholder="sk-or-v1-…"
-                  spellCheck={false}
-                  autoComplete="off"
-                  autoCapitalize="off"
-                  autoCorrect="off"
-                />
-                <button
-                  type="button"
-                  className="btn-ghost"
-                  onClick={() => setShowKey((v) => !v)}
-                  title={showKey ? "Masquer" : "Afficher"}
-                >
-                  {showKey ? "Masquer" : "Afficher"}
-                </button>
-                <button
-                  type="button"
-                  className="btn-ghost"
-                  onClick={() => onApiKeyChange("")}
-                  disabled={!apiKey}
-                  title="Effacer la clé enregistrée"
-                >
-                  Effacer
-                </button>
-              </div>
-              <div className="thr-apikey-hint">
-                {apiKey
-                  ? "Clé active — l'analyse IA utilise cette clé."
-                  : "Aucune clé renseignée — l'analyse IA utilisera la variable OPENROUTER_API_KEY du serveur si elle est définie."}
-              </div>
-            </div>
-          </div>
-
-          {/* OpenRouter search pipeline */}
-          <div className="thr-group">
-            <div className="thr-head">
-              <span className="thr-name">Pipeline de recherche IA</span>
-              <span className="thr-src">OpenRouter · 2 appels</span>
-            </div>
-            <div className="thr-sub">
-              Le bulletin d&apos;actualité utilise désormais Sonar Pro pour la
-              recherche web en temps réel, puis Qwen 3 235B Instruct 2507 pour
-              structurer la réponse finale.
-            </div>
-            <div className="thr-apikey">
-              {OPENROUTER_PIPELINE.map((model, index) => (
-                <div className="thr-apikey-hint" key={model.id}>
-                  <strong>{index + 1}. {model.label}</strong> · {model.role}
-                  <br />
-                  <code>{model.id}</code>
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* VIX */}
           <div className="thr-group">
             <div className="thr-head">
@@ -174,7 +82,9 @@ export default function SettingsModal({
                 />
                 <div
                   className="thr-preview-seg s-calme"
-                  style={{ flex: thresholds.vix.calme - thresholds.vix.euphorie }}
+                  style={{
+                    flex: thresholds.vix.calme - thresholds.vix.euphorie,
+                  }}
                 />
                 <div
                   className="thr-preview-seg s-stress"
@@ -190,7 +100,9 @@ export default function SettingsModal({
                   0 – {thresholds.vix.euphorie}
                 </div>
                 <div
-                  style={{ flex: thresholds.vix.calme - thresholds.vix.euphorie }}
+                  style={{
+                    flex: thresholds.vix.calme - thresholds.vix.euphorie,
+                  }}
                 >
                   {thresholds.vix.euphorie} – {thresholds.vix.calme}
                 </div>
@@ -279,7 +191,9 @@ export default function SettingsModal({
                 />
                 <div
                   className="thr-preview-seg s-calme"
-                  style={{ flex: thresholds.oas.calme - thresholds.oas.euphorie }}
+                  style={{
+                    flex: thresholds.oas.calme - thresholds.oas.euphorie,
+                  }}
                 />
                 <div
                   className="thr-preview-seg s-stress"
@@ -295,7 +209,9 @@ export default function SettingsModal({
                   0 – {thresholds.oas.euphorie.toFixed(2)}
                 </div>
                 <div
-                  style={{ flex: thresholds.oas.calme - thresholds.oas.euphorie }}
+                  style={{
+                    flex: thresholds.oas.calme - thresholds.oas.euphorie,
+                  }}
                 >
                   {thresholds.oas.euphorie.toFixed(2)} –{" "}
                   {thresholds.oas.calme.toFixed(2)}
