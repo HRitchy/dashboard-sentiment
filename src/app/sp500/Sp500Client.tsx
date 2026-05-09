@@ -9,13 +9,10 @@ import {
   useRef,
   useState,
 } from "react";
-import { useAiStream } from "@/lib/useAiStream";
 import styles from "./page.module.css";
 
 const SYMBOL = "^GSPC";
 const THEME_KEY = "dashboard-theme";
-const API_KEY_KEY = "dashboard-openrouter-key";
-const AI_MODEL_KEY = "dashboard-ai-model";
 
 type Theme = "light" | "dark";
 type RangeKey = "6m" | "ytd" | "1y" | "5y" | "10y" | "max";
@@ -101,7 +98,8 @@ async function fetchData(): Promise<FetchResult> {
       parser: "json",
     },
     {
-      url: "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(direct),
+      url:
+        "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(direct),
       parser: "json",
     },
     {
@@ -255,14 +253,26 @@ function rangeSlice(points: Point[], key: RangeKey): Point[] {
 
 function MoonIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+    >
       <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" />
     </svg>
   );
 }
 function SunIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+    >
       <circle cx="12" cy="12" r="4" />
       <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
     </svg>
@@ -313,8 +323,7 @@ function Chart({ points, mm50, mm200 }: ChartProps) {
     const y0 = minY - padY;
     const y1 = maxY + padY;
 
-    const x = (i: number) =>
-      PAD_L + (i / Math.max(1, points.length - 1)) * cw;
+    const x = (i: number) => PAD_L + (i / Math.max(1, points.length - 1)) * cw;
     const y = (v: number) => PAD_T + (1 - (v - y0) / (y1 - y0)) * ch;
 
     function pathFor(values: (number | null)[]): string {
@@ -349,7 +358,9 @@ function Chart({ points, mm50, mm200 }: ChartProps) {
     const xTickN = Math.min(6, points.length);
     const xTicks: { i: number; t: number }[] = [];
     for (let i = 0; i < xTickN; i++) {
-      const idx = Math.round((i / Math.max(1, xTickN - 1)) * (points.length - 1));
+      const idx = Math.round(
+        (i / Math.max(1, xTickN - 1)) * (points.length - 1),
+      );
       xTicks.push({ i: idx, t: points[idx].t });
     }
 
@@ -388,7 +399,7 @@ function Chart({ points, mm50, mm200 }: ChartProps) {
     const ratio = (px - layout.PAD_L) / layout.cw;
     const idx = Math.max(
       0,
-      Math.min(points.length - 1, Math.round(ratio * (points.length - 1)))
+      Math.min(points.length - 1, Math.round(ratio * (points.length - 1))),
     );
     setHover(idx);
   };
@@ -426,12 +437,7 @@ function Chart({ points, mm50, mm200 }: ChartProps) {
         </g>
         <g className={styles.chartAxis}>
           {layout.ticks.map((t, i) => (
-            <text
-              key={i}
-              x={layout.PAD_L - 10}
-              y={t.y + 3}
-              textAnchor="end"
-            >
+            <text key={i} x={layout.PAD_L - 10} y={t.y + 3} textAnchor="end">
               {fmtPrice(t.v, 0)}
             </text>
           ))}
@@ -553,12 +559,19 @@ function Chart({ points, mm50, mm200 }: ChartProps) {
   );
 }
 
+function loadTheme(): Theme {
+  if (typeof window === "undefined") return "light";
+  try {
+    const saved = localStorage.getItem(THEME_KEY);
+    return saved === "dark" || saved === "light" ? saved : "light";
+  } catch {
+    return "light";
+  }
+}
+
 export default function Sp500Client() {
-  const [theme, setTheme] = useState<Theme>("light");
+  const [theme, setTheme] = useState<Theme>(loadTheme);
   const [rangeKey, setRangeKey] = useState<RangeKey>("1y");
-  const [apiKey, setApiKey] = useState<string>("");
-  const [aiModel, setAiModel] = useState<string>("");
-  const [apiKeyLoaded, setApiKeyLoaded] = useState(false);
   const [data, setData] = useState<{
     points: Point[];
     mm50All: (number | null)[];
@@ -571,21 +584,6 @@ export default function Sp500Client() {
     message: string;
     attempts?: string[];
   } | null>(null);
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(THEME_KEY);
-      if (saved === "dark" || saved === "light") setTheme(saved);
-      const savedKey = localStorage.getItem(API_KEY_KEY);
-      if (savedKey) setApiKey(savedKey);
-      const savedModel = localStorage.getItem(AI_MODEL_KEY);
-      if (savedModel) setAiModel(savedModel);
-    } catch {
-      /* ignore */
-    } finally {
-      setApiKeyLoaded(true);
-    }
-  }, []);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -623,7 +621,7 @@ export default function Sp500Client() {
   }, []);
 
   useEffect(() => {
-    void boot();
+    queueMicrotask(() => void boot());
   }, [boot]);
 
   const slice = useMemo(() => {
@@ -670,52 +668,6 @@ export default function Sp500Client() {
   }, [data, slice]);
 
   const currency = data?.meta.currency || "EUR";
-
-  const aiStats = useMemo(() => {
-    if (!data) return null;
-    const pts = data.points;
-    if (pts.length === 0) return null;
-    const last = pts[pts.length - 1];
-    const ma50 = data.mm50All[data.mm50All.length - 1] ?? null;
-    const ma200 = data.mm200All[data.mm200All.length - 1] ?? null;
-
-    const findOnOrBefore = (target: number): Point | null => {
-      for (let i = pts.length - 1; i >= 0; i--) {
-        if (pts[i].t <= target) return pts[i];
-      }
-      return null;
-    };
-    const pct = (from: Point | null): number | null =>
-      from ? ((last.c - from.c) / from.c) * 100 : null;
-
-    const lastDate = new Date(last.t * 1000);
-    const ytdStart = Math.floor(
-      new Date(lastDate.getFullYear(), 0, 1).getTime() / 1000,
-    );
-    const ytdRef = pts.find((p) => p.t >= ytdStart) ?? null;
-    const oneYearRef = findOnOrBefore(last.t - 365 * 86400);
-    const fiveYearRef = findOnOrBefore(last.t - 5 * 365 * 86400);
-
-    return {
-      lastClose: last.c,
-      lastDate: lastDate.toISOString().slice(0, 10),
-      ma50,
-      ma200,
-      ytdPct: ytdRef ? ((last.c - ytdRef.c) / ytdRef.c) * 100 : null,
-      oneYearPct: pct(oneYearRef),
-      fiveYearPct: pct(fiveYearRef),
-    };
-  }, [data]);
-
-  const aiBody = useMemo(
-    () => (aiStats && apiKeyLoaded ? { stats: aiStats } : null),
-    [aiStats, apiKeyLoaded],
-  );
-  const ai = useAiStream("/api/ai/sp500", aiBody, {
-    apiKey,
-    aiModel,
-    dailyCacheKey: "sp500-ai-analysis",
-  });
 
   return (
     <div className={styles.page}>
@@ -820,20 +772,10 @@ export default function Sp500Client() {
                 <span className={styles.mono}>{fmtPrice(stats.low52)}</span>
               </span>
             </div>
-
-            <div
-              className={`${styles.aiPanel}${ai.error ? ` ${styles.aiError}` : ""}`}
-            >
-              {ai.error
-                ? `Analyse IA indisponible : ${ai.error}`
-                : ai.text || (ai.loading ? "Analyse IA en cours…" : "")}
-            </div>
-
             <div className={styles.chartCard}>
               <div className={styles.chartHead}>
                 <div className={styles.chartTitle}>
-                  {SYMBOL}{" "}
-                  <small>S&amp;P 500 Index · cours quotidien</small>
+                  {SYMBOL} <small>S&amp;P 500 Index · cours quotidien</small>
                 </div>
                 <div className={styles.rangeToggle}>
                   {RANGES.map((r) => (
