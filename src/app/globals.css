@@ -1357,3 +1357,169 @@ body {
   .thr-inputs, .thr-inputs.fg { grid-template-columns: repeat(2, 1fr); }
   .modal-head h2 { font-size: 26px; }
 }
+
+@media (max-width: 480px) {
+  .shell {
+    padding: 18px 14px 56px;
+    overflow-x: hidden;
+  }
+
+  .topbar {
+    margin-bottom: 40px;
+  }
+
+  .tabs {
+    gap: 0;
+    margin: -18px 0 20px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    flex: 1 0 auto;
+    padding: 10px 12px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .verdict-hero {
+    padding: 22px 14px;
+    border-radius: 10px;
+  }
+  .verdict {
+    gap: 24px;
+    padding-top: 0;
+  }
+  .ai-commentary {
+    max-width: none;
+    width: 100%;
+    min-width: 0;
+    margin-bottom: 18px;
+  }
+  .ai-header-row {
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .ai-header-right {
+    flex-shrink: 0;
+  }
+  .ai-freshness {
+    max-width: 112px;
+    white-space: normal;
+    text-align: right;
+    line-height: 1.25;
+  }
+  .ai-headline {
+    font-size: 15.5px;
+    line-height: 1.5;
+    text-wrap: pretty;
+  }
+
+  .market-reading {
+    margin: 12px 0 14px;
+    padding: 12px;
+  }
+  .market-reading-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .market-reading-item,
+  .conviction-bar-wrap {
+    min-width: 0 !important;
+    width: 100%;
+  }
+  .market-reading-item-value {
+    overflow-wrap: anywhere;
+  }
+
+  .ai-bullets {
+    gap: 10px;
+    font-size: 12.5px;
+  }
+  .ai-bullets li {
+    display: grid;
+    grid-template-columns: auto auto 1fr auto;
+    align-items: start;
+    column-gap: 6px;
+    row-gap: 5px;
+  }
+  .bullet-tag,
+  .bullet-impact,
+  .bullet-status,
+  .bullet-source-link {
+    transform: none;
+  }
+  .bullet-text {
+    grid-column: 1 / -1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .bullet-source-link {
+    justify-self: end;
+  }
+
+  .market-context-row {
+    align-items: flex-start;
+    gap: 5px;
+  }
+  .market-context-row-label {
+    flex-basis: 100%;
+    min-width: 0;
+  }
+  .market-context-row-value {
+    overflow-wrap: anywhere;
+  }
+  .megacaps-scroll {
+    width: 100%;
+    margin-right: -12px;
+    padding-right: 12px;
+  }
+
+  .ai-sources {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 7px;
+  }
+  .source-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+  .source-pill {
+    width: 100%;
+    min-width: 0;
+    justify-content: flex-start;
+    border-radius: 8px;
+    padding: 7px 9px;
+  }
+  .source-pill > span:first-of-type {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .source-premium-badge,
+  .source-time {
+    flex-shrink: 0;
+  }
+
+  .takeaway-card {
+    padding: 13px 12px;
+    gap: 11px;
+  }
+  .takeaway-row {
+    display: grid;
+    grid-template-columns: 16px 1fr;
+    gap: 3px 7px;
+  }
+  .takeaway-row-label {
+    white-space: normal;
+  }
+  .takeaway-row > span:last-child {
+    grid-column: 2;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+}
