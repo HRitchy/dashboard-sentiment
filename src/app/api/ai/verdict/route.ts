@@ -1,4 +1,4 @@
-import { generateBulletin, OpenRouterError, DEFAULT_MODEL } from "@/lib/claude";
+import { generateBulletin, OpenRouterError } from "@/lib/claude";
 import type { BulletinPayload, BulletinEvent } from "@/lib/claude";
 
 export const dynamic = "force-dynamic";
@@ -6,7 +6,7 @@ export const revalidate = 0;
 
 const SYSTEM_PROMPT = `Tu es un assistant financier sobre et factuel, qui s'adresse en français à un investisseur particulier suivant un dashboard de sentiment de marché.
 
-En te basant sur tes connaissances financières récentes, analyse la situation actuelle de l'indice S&P 500 aux États-Unis pour dégager la tendance dominante des dernières séances.
+En te basant uniquement sur la recherche web Sonar Pro qui te sera fournie, analyse la situation actuelle de l'indice S&P 500 aux États-Unis pour dégager la tendance dominante des dernières séances.
 
 Tu dois produire un bulletin court et structuré au format suivant, EXACTEMENT, sans rien ajouter avant ou après :
 
@@ -95,7 +95,6 @@ function serializePayload(payload: BulletinPayload): string {
 
 export async function POST(req: Request): Promise<Response> {
   const apiKey = req.headers.get("x-openrouter-api-key")?.trim() || undefined;
-  const model = req.headers.get("x-ai-model")?.trim() || DEFAULT_MODEL;
   const body = await readBody(req);
   const userPrompt = buildUserPrompt(body);
 
@@ -105,7 +104,6 @@ export async function POST(req: Request): Promise<Response> {
       user: userPrompt,
       maxTokens: 1400,
       apiKey,
-      model,
     });
 
     return new Response(serializePayload(payload), {

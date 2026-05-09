@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { DEFAULT_THRESHOLDS, type Thresholds } from "@/lib/types";
-import { OPENROUTER_MODELS, DEFAULT_MODEL } from "@/lib/claude";
+import { OPENROUTER_PIPELINE } from "@/lib/claude";
 
 interface Props {
   open: boolean;
@@ -21,8 +21,6 @@ export default function SettingsModal({
   onChange,
   apiKey,
   onApiKeyChange,
-  aiModel,
-  onAiModelChange,
   onClose,
 }: Props) {
   const [showKey, setShowKey] = useState(false);
@@ -135,33 +133,25 @@ export default function SettingsModal({
             </div>
           </div>
 
-          {/* Model selector */}
+          {/* OpenRouter search pipeline */}
           <div className="thr-group">
             <div className="thr-head">
-              <span className="thr-name">Modèle IA</span>
-              <span className="thr-src">OpenRouter</span>
+              <span className="thr-name">Pipeline de recherche IA</span>
+              <span className="thr-src">OpenRouter · 2 appels</span>
             </div>
             <div className="thr-sub">
-              Choisissez le modèle d&apos;intelligence artificielle utilisé pour
-              générer le bulletin et l&apos;analyse S&amp;P 500.
+              Le bulletin d&apos;actualité utilise désormais Sonar Pro pour la
+              recherche web en temps réel, puis Qwen 3 235B gratuit pour
+              structurer la réponse finale.
             </div>
             <div className="thr-apikey">
-              <div className="thr-apikey-row">
-                <select
-                  value={aiModel || DEFAULT_MODEL}
-                  onChange={(e) => onAiModelChange(e.target.value)}
-                  style={{ flex: 1 }}
-                >
-                  {OPENROUTER_MODELS.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="thr-apikey-hint">
-                Le modèle sélectionné est utilisé pour toutes les analyses IA de l&apos;application.
-              </div>
+              {OPENROUTER_PIPELINE.map((model, index) => (
+                <div className="thr-apikey-hint" key={model.id}>
+                  <strong>{index + 1}. {model.label}</strong> · {model.role}
+                  <br />
+                  <code>{model.id}</code>
+                </div>
+              ))}
             </div>
           </div>
 
