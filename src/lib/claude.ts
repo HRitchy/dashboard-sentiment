@@ -1,7 +1,7 @@
 const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
 
 export const SEARCH_MODEL = "perplexity/sonar-pro";
-export const STRUCTURING_MODEL = "qwen/qwen3-235b-a22b:free";
+export const STRUCTURING_MODEL = "qwen/qwen3-235b-a22b-2507";
 export const DEFAULT_MODEL = STRUCTURING_MODEL;
 
 export const OPENROUTER_PIPELINE = [
@@ -12,7 +12,7 @@ export const OPENROUTER_PIPELINE = [
   },
   {
     id: STRUCTURING_MODEL,
-    label: "Qwen 3 235B (gratuit)",
+    label: "Qwen 3 235B Instruct 2507",
     role: "Traitement et structuration de la réponse",
   },
 ] as const;
@@ -44,6 +44,12 @@ async function throwOnBadStatus(res: Response): Promise<never> {
   }
   if (res.status === 429) {
     throw new OpenRouterError(429, "Limite de requêtes atteinte, réessaie dans un instant.");
+  }
+  if (res.status === 404 && body.includes("No endpoints found for")) {
+    throw new OpenRouterError(
+      404,
+      "Modèle OpenRouter indisponible : vérifie que l'identifiant du modèle est encore actif.",
+    );
   }
   throw new OpenRouterError(res.status, `Erreur API OpenRouter (${res.status}): ${body}`);
 }
