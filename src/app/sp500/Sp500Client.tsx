@@ -11,7 +11,7 @@ import {
 } from "react";
 import styles from "./page.module.css";
 
-const SYMBOL = "^GSPC";
+const SYMBOL = "MWRE.DE";
 const THEME_KEY = "dashboard-theme";
 
 type Theme = "light" | "dark";
@@ -148,7 +148,7 @@ async function fetchData(): Promise<FetchResult> {
         }
         return {
           points,
-          meta: { currency: "USD", symbol: "^GSPC" },
+          meta: { currency: "USD", symbol: "MWRE.DE" },
           source: "Stooq via " + label,
         };
       }
@@ -824,7 +824,7 @@ export default function Sp500Client() {
         )}
 
         <div className={styles.foot}>
-          <span>Source · query2.finance.yahoo.com · ^GSPC</span>
+          <span>Source · query2.finance.yahoo.com · MWRE.DE</span>
         </div>
       </div>
     </div>
