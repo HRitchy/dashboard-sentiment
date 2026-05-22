@@ -81,12 +81,10 @@ async function fetchData(): Promise<FetchResult> {
   const period2 = Math.floor(Date.now() / 1000);
   const direct = `https://query2.finance.yahoo.com/v8/finance/chart/${SYMBOL}?interval=1d&period1=0&period2=${period2}`;
   const directQ1 = `https://query1.finance.yahoo.com/v8/finance/chart/${SYMBOL}?interval=1d&period1=0&period2=${period2}`;
-  const stooqUrl = "https://stooq.com/q/d/l/?s=^spx&i=d";
-  const stooqProxied = "https://r.jina.ai/" + stooqUrl;
 
   type Candidate = {
     url: string;
-    parser: "json" | "json-or-text" | "allorigins-wrapped" | "stooq-csv";
+    parser: "json" | "json-or-text" | "allorigins-wrapped";
   };
   const candidates: Candidate[] = [
     { url: "https://r.jina.ai/" + direct, parser: "json-or-text" },
@@ -110,7 +108,6 @@ async function fetchData(): Promise<FetchResult> {
       url: "https://api.allorigins.win/get?url=" + encodeURIComponent(direct),
       parser: "allorigins-wrapped",
     },
-    { url: stooqProxied, parser: "stooq-csv" },
   ];
 
   const errors: string[] = [];
@@ -126,32 +123,6 @@ async function fetchData(): Promise<FetchResult> {
         continue;
       }
       const text = await res.text();
-
-      if (c.parser === "stooq-csv") {
-        const lines = text.trim().split("\n");
-        if (lines.length < 2) {
-          errors.push(`${label} CSV vide`);
-          continue;
-        }
-        const points: Point[] = [];
-        for (let i = 1; i < lines.length; i++) {
-          const cols = lines[i].split(",");
-          const d = cols[0];
-          const close = cols[4];
-          const t = Math.floor(new Date(d + "T00:00:00Z").getTime() / 1000);
-          const c2 = parseFloat(close);
-          if (!isNaN(t) && !isNaN(c2)) points.push({ t, c: c2 });
-        }
-        if (points.length === 0) {
-          errors.push(`${label} CSV illisible`);
-          continue;
-        }
-        return {
-          points,
-          meta: { currency: "USD", symbol: "MWRE.DE" },
-          source: "Stooq via " + label,
-        };
-      }
 
       let json: unknown;
       try {
@@ -775,7 +746,7 @@ export default function Sp500Client() {
             <div className={styles.chartCard}>
               <div className={styles.chartHead}>
                 <div className={styles.chartTitle}>
-                  {SYMBOL} <small>S&amp;P 500 Index · cours quotidien</small>
+                  {SYMBOL} <small>MSCI World · cours quotidien</small>
                 </div>
                 <div className={styles.rangeToggle}>
                   {RANGES.map((r) => (

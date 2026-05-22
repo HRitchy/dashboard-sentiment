@@ -6,7 +6,7 @@ Application Next.js de suivi du sentiment de marché, centrée sur les indicateu
 - HY OAS
 - Fear & Greed
 - NFCI
-- S&P 500
+- MSCI World
 
 ## Démarrage
 
