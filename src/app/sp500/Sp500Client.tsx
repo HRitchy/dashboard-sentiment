@@ -653,7 +653,7 @@ export default function Sp500Client() {
           <div className={styles.brand}>
             <Link href="/">Sentiment de Marché</Link>
             <span className={styles.brandSep}>/</span>
-            <span>S&amp;P 500</span>
+            <span>MSCI World</span>
           </div>
           <button
             className={styles.iconBtn}
