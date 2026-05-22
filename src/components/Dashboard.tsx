@@ -186,8 +186,8 @@ export default function Dashboard() {
                   <Link
                     href="/sp500"
                     className="icon-btn hero-action-btn"
-                    title="S&P 500"
-                    aria-label="Voir le S&P 500"
+                    title="MSCI World"
+                    aria-label="Voir le MSCI World"
                   >
                     <svg
                       viewBox="0 0 24 24"
