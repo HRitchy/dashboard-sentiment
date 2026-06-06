@@ -107,12 +107,29 @@ export const SCORE_WEIGHTS: Record<IndicatorKey, number> = {
   nfci: 1,
 };
 
-// Mappe un score 0–100 vers un état catégoriel (pour la couleur du panneau).
+// Paliers de l'indice composite (source unique des bornes 0–100). Sert à la
+// fois à la couleur du panneau (scoreToState) et à la jauge à paliers.
+export interface ScoreBand {
+  state: SentimentState;
+  from: number;
+  to: number;
+}
+
+export const SCORE_BANDS: readonly ScoreBand[] = [
+  { state: "PANIQUE", from: 0, to: 20 },
+  { state: "STRESS", from: 20, to: 40 },
+  { state: "NEUTRE", from: 40, to: 60 },
+  { state: "CALME", from: 60, to: 80 },
+  { state: "EUPHORIE", from: 80, to: 100 },
+];
+
+// Mappe un score 0–100 vers un palier catégoriel (pour la couleur du panneau).
 export function scoreToState(score: number): SentimentState {
-  if (score >= 80) return "EUPHORIE";
-  if (score >= 60) return "CALME";
-  if (score >= 40) return "NEUTRE";
-  if (score >= 20) return "STRESS";
+  // Parcours du plus haut au plus bas : premier palier dont la borne basse est
+  // atteinte. Garantit la cohérence avec SCORE_BANDS (source unique).
+  for (let i = SCORE_BANDS.length - 1; i >= 0; i--) {
+    if (score >= SCORE_BANDS[i].from) return SCORE_BANDS[i].state;
+  }
   return "PANIQUE";
 }
 

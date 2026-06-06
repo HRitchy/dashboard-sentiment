@@ -18,7 +18,6 @@ import {
   classifyNfci,
   classifyVix,
   convergence,
-  STATE_LABELS,
   STATE_SENTENCES,
 } from "@/lib/classify";
 import {
@@ -35,6 +34,7 @@ import {
   valuesOf,
   type History,
 } from "@/lib/history";
+import ScoreBar from "./ScoreBar";
 import SettingsModal from "./SettingsModal";
 import Speedometer, { type SpeedoZone } from "./Speedometer";
 
@@ -85,35 +85,6 @@ function loadTheme(): "light" | "dark" {
   } catch {
     return "light";
   }
-}
-
-// Sparkline SVG de l'indice composite (valeurs quotidiennes récentes).
-function ScoreSparkline({ values }: { values: number[] }) {
-  const W = 120;
-  const H = 34;
-  const PAD = 3;
-  const recent = values.slice(-30);
-  const min = Math.min(...recent);
-  const max = Math.max(...recent);
-  const span = max - min || 1;
-  const n = recent.length;
-  const x = (i: number) => PAD + (i / Math.max(1, n - 1)) * (W - 2 * PAD);
-  const y = (v: number) => PAD + (1 - (v - min) / span) * (H - 2 * PAD);
-  const d = recent
-    .map((v, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)} ${y(v).toFixed(1)}`)
-    .join(" ");
-  return (
-    <svg
-      className="hero-score-spark"
-      viewBox={`0 0 ${W} ${H}`}
-      width={W}
-      height={H}
-      aria-hidden="true"
-    >
-      <path d={d} fill="none" strokeWidth={1.75} strokeLinejoin="round" strokeLinecap="round" />
-      <circle cx={x(n - 1)} cy={y(recent[n - 1])} r={2.4} />
-    </svg>
-  );
 }
 
 export default function Dashboard() {
@@ -205,20 +176,9 @@ export default function Dashboard() {
     nfci: nfciSerenity(nfci?.value ?? null),
   });
   const scoreHistory = scoreSeries(history, thresholds);
-  const scoreTrend =
-    scoreHistory.length >= 2
-      ? (() => {
-          const delta = scoreHistory[scoreHistory.length - 1] - scoreHistory[scoreHistory.length - 2];
-          const dir = delta > 0 ? "up" : delta < 0 ? "down" : "flat";
-          const sign = delta > 0 ? "+" : delta < 0 ? "−" : "±";
-          const arrow = dir === "up" ? "▲" : dir === "down" ? "▼" : "▬";
-          return { dir, arrow, label: `${sign}${Math.abs(delta)}` };
-        })()
-      : null;
   const scoreClass = composite.state
     ? `panel-${composite.state.toLowerCase()}`
     : "panel-neutre";
-  const scoreWClass = composite.state ? `w-${composite.state.toLowerCase()}` : "";
 
   // Build a single error banner summarising individual reading failures.
   const errors = [
@@ -244,36 +204,12 @@ export default function Dashboard() {
           <div className={`verdict-hero ${scoreClass}`}>
             <div className="verdict" key={finalSentence}>
               <div className="fade-in">
-                {/* Indice composite 0–100 — affiché en grand */}
-                <div className="hero-score">
-                  <span className="hero-score-eyebrow">Indice de sérénité</span>
-                  <div className="hero-score-main">
-                    <span className={`hero-score-num ${scoreWClass}`}>
-                      {composite.value ?? "—"}
-                    </span>
-                    <span className="hero-score-max">/100</span>
-                    {composite.state ? (
-                      <span className={`hero-score-tag ${scoreWClass}`}>
-                        {STATE_LABELS[composite.state]}
-                      </span>
-                    ) : null}
-                  </div>
-                  {scoreHistory.length >= 2 ? (
-                    <div
-                      className="hero-score-foot"
-                      title="Évolution de l'indice depuis le relevé précédent"
-                    >
-                      <ScoreSparkline values={scoreHistory} />
-                      {scoreTrend ? (
-                        <span className={`trend-chip trend-${scoreTrend.dir}`}>
-                          <span className="trend-arrow">{scoreTrend.arrow}</span>
-                          {scoreTrend.label}
-                          <span className="trend-since">veille</span>
-                        </span>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
+                {/* Indice composite 0–100 — jauge à paliers */}
+                <ScoreBar
+                  value={composite.value}
+                  state={composite.state}
+                  history={scoreHistory}
+                />
                 <h2
                   className={`verdict-title ${
                     conv.state ? `w-${conv.state.toLowerCase()}` : ""
