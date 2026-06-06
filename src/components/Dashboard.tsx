@@ -17,6 +17,12 @@ import {
   convergence,
   STATE_SENTENCES,
 } from "@/lib/classify";
+import {
+  loadHistory,
+  recordReadings,
+  valuesOf,
+  type History,
+} from "@/lib/history";
 import SettingsModal from "./SettingsModal";
 import Speedometer, { type SpeedoZone } from "./Speedometer";
 
@@ -84,6 +90,7 @@ export default function Dashboard() {
   const [hasFetched, setHasFetched] = useState(false);
   const [clockNow, setClockNow] = useState<Date>(() => new Date());
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [history, setHistory] = useState<History>(loadHistory);
 
   // Persist thresholds.
   useEffect(() => {
@@ -113,6 +120,14 @@ export default function Dashboard() {
       const data = (await res.json()) as SentimentPayload;
       setPayload(data);
       setHasFetched(true);
+      setHistory((prev) =>
+        recordReadings(prev, {
+          vix: data.vix.value,
+          oas: data.hyOas.value,
+          fg: data.fearGreed.value,
+          nfci: data.nfci.value,
+        }),
+      );
     } catch (err) {
       setFetchError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -318,6 +333,7 @@ export default function Dashboard() {
               loading={refreshing && !payload}
               error={vix?.error}
               state={vixState}
+              history={valuesOf(history.vix)}
               compact
             />
             <Speedometer
@@ -355,6 +371,7 @@ export default function Dashboard() {
               loading={refreshing && !payload}
               error={oas?.error}
               state={oasState}
+              history={valuesOf(history.oas)}
               compact
             />
             <Speedometer
@@ -396,6 +413,7 @@ export default function Dashboard() {
               loading={refreshing && !payload}
               error={fg?.error}
               state={fgState}
+              history={valuesOf(history.fg)}
               compact
             />
           </div>
@@ -436,6 +454,7 @@ export default function Dashboard() {
             loading={refreshing && !payload}
             error={nfci?.error}
             state={nfciState}
+            history={valuesOf(history.nfci)}
           />
         </div>
       </div>
