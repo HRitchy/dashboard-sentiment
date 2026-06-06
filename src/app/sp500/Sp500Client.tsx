@@ -15,7 +15,7 @@ const SYMBOL = "MWHE.DE";
 const THEME_KEY = "dashboard-theme";
 
 type Theme = "light" | "dark";
-type RangeKey = "6m" | "ytd" | "1y" | "5y" | "10y" | "max";
+type RangeKey = "1m" | "3m" | "6m" | "ytd" | "1y" | "5y" | "10y" | "max";
 
 type Point = { t: number; c: number };
 
@@ -28,6 +28,8 @@ type FetchResult = {
 type FetchError = Error & { attempts?: string[] };
 
 const RANGES: { k: RangeKey; l: string }[] = [
+  { k: "1m", l: "1M" },
+  { k: "3m", l: "3M" },
   { k: "6m", l: "6M" },
   { k: "ytd", l: "YTD" },
   { k: "1y", l: "1A" },
@@ -198,6 +200,12 @@ function rangeSlice(points: Point[], key: RangeKey): Point[] {
   const lastT = last.t;
   let cutoff: number;
   switch (key) {
+    case "1m":
+      cutoff = lastT - 30 * 86400;
+      break;
+    case "3m":
+      cutoff = lastT - 90 * 86400;
+      break;
     case "6m":
       cutoff = lastT - 180 * 86400;
       break;
