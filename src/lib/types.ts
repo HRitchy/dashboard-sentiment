@@ -23,6 +23,11 @@ export const NFCI_THRESHOLDS = {
 
 export const NFCI_RANGE = { min: -2, max: 4 } as const;
 
+// Plages d'affichage des jauges (bornes min/max des speedometers).
+export const VIX_RANGE = { min: 0, max: 50 } as const;
+export const OAS_RANGE = { min: 2, max: 10 } as const;
+export const FG_RANGE = { min: 0, max: 100 } as const;
+
 export interface Thresholds {
   vix: { euphorie: number; calme: number; stress: number };
   oas: { euphorie: number; calme: number; stress: number };
