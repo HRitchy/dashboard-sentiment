@@ -550,7 +550,7 @@ function loadTheme(): Theme {
 
 export default function Sp500Client() {
   const [theme, setTheme] = useState<Theme>(loadTheme);
-  const [rangeKey, setRangeKey] = useState<RangeKey>("1y");
+  const [rangeKey, setRangeKey] = useState<RangeKey>("ytd");
   const [data, setData] = useState<{
     points: Point[];
     mm50All: (number | null)[];
