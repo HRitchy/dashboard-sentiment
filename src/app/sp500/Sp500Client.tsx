@@ -11,7 +11,7 @@ import {
 } from "react";
 import styles from "./page.module.css";
 
-const SYMBOL = "MWRE.DE";
+const SYMBOL = "MWHE.DE";
 const THEME_KEY = "dashboard-theme";
 
 type Theme = "light" | "dark";
@@ -795,7 +795,7 @@ export default function Sp500Client() {
         )}
 
         <div className={styles.foot}>
-          <span>Source · query2.finance.yahoo.com · MWRE.DE</span>
+          <span>Source · query2.finance.yahoo.com · MWHE.DE</span>
         </div>
       </div>
     </div>
