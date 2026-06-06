@@ -15,7 +15,7 @@ const SYMBOL = "MWHE.DE";
 const THEME_KEY = "dashboard-theme";
 
 type Theme = "light" | "dark";
-type RangeKey = "1m" | "3m" | "6m" | "ytd" | "1y" | "5y" | "10y" | "max";
+type RangeKey = "1m" | "3m" | "6m" | "ytd" | "1y" | "5y" | "10y";
 
 type Point = { t: number; c: number };
 
@@ -35,7 +35,6 @@ const RANGES: { k: RangeKey; l: string }[] = [
   { k: "1y", l: "1A" },
   { k: "5y", l: "5A" },
   { k: "10y", l: "10A" },
-  { k: "max", l: "MAX" },
 ];
 
 function fmtPrice(v: number | null | undefined, dec = 2): string {
@@ -223,7 +222,6 @@ function rangeSlice(points: Point[], key: RangeKey): Point[] {
     case "10y":
       cutoff = lastT - 10 * 365 * 86400;
       break;
-    case "max":
     default:
       return points;
   }
