@@ -23,39 +23,6 @@ interface Props {
   formatValue?: (v: number) => string;
   formatTick?: (v: number) => string;
   compact?: boolean;
-  /** Valeurs quotidiennes (chronologiques) pour la sparkline + la tendance. */
-  history?: number[];
-}
-
-// Petite sparkline SVG des valeurs quotidiennes récentes.
-function Sparkline({ values }: { values: number[] }) {
-  const W = 76;
-  const H = 22;
-  const PAD = 2;
-  const recent = values.slice(-30);
-  const min = Math.min(...recent);
-  const max = Math.max(...recent);
-  const span = max - min || 1;
-  const n = recent.length;
-  const x = (i: number) => PAD + (i / Math.max(1, n - 1)) * (W - 2 * PAD);
-  const y = (v: number) => PAD + (1 - (v - min) / span) * (H - 2 * PAD);
-  const d = recent
-    .map((v, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)} ${y(v).toFixed(1)}`)
-    .join(" ");
-  const lastX = x(n - 1);
-  const lastY = y(recent[n - 1]);
-  return (
-    <svg
-      className="speedo-spark"
-      viewBox={`0 0 ${W} ${H}`}
-      width={W}
-      height={H}
-      aria-hidden="true"
-    >
-      <path d={d} fill="none" strokeWidth={1.5} strokeLinejoin="round" />
-      <circle cx={lastX} cy={lastY} r={1.8} />
-    </svg>
-  );
 }
 
 // Geometry — semi-circle gauge, min on the left, max on the right.
@@ -102,27 +69,8 @@ export default function Speedometer({
   formatValue,
   formatTick,
   compact,
-  history,
 }: Props) {
   const { min, max } = range;
-
-  const fmt = formatValue ?? ((v: number) => String(v));
-
-  // Tendance vs. dernier relevé précédent (la veille dans le cas usuel).
-  const trend =
-    history && history.length >= 2
-      ? (() => {
-          const last = history[history.length - 1];
-          const prev = history[history.length - 2];
-          const delta = last - prev;
-          const dir = delta > 0 ? "up" : delta < 0 ? "down" : "flat";
-          const sign = delta > 0 ? "+" : delta < 0 ? "−" : "±";
-          // formatValue peut déjà préfixer un signe (NFCI) : on le retire.
-          const body = fmt(Math.abs(delta)).replace(/^[+\-−]/, "");
-          const arrow = dir === "up" ? "▲" : dir === "down" ? "▼" : "▬";
-          return { dir, label: `${sign}${body}`, arrow };
-        })()
-      : null;
 
   const segs = zones.map((z) => ({
     from: valueToAngle(z.from, min, max),
@@ -235,18 +183,8 @@ export default function Speedometer({
         </div>
       </div>
 
-      {(error || asOf || trend) && (
+      {(error || asOf) && (
         <div className="speedo-foot">
-          {trend ? (
-            <div className="speedo-trend" title="Évolution depuis le relevé précédent">
-              <Sparkline values={history!} />
-              <span className={`trend-chip trend-${trend.dir}`}>
-                <span className="trend-arrow">{trend.arrow}</span>
-                {trend.label}
-                <span className="trend-since">veille</span>
-              </span>
-            </div>
-          ) : null}
           {error ? <span className="speedo-err">{error}</span> : null}
           {!error && asOf ? (
             <span className="speedo-asof">
