@@ -35,7 +35,6 @@ import {
   type History,
 } from "@/lib/history";
 import ScoreBar from "./ScoreBar";
-import SettingsModal from "./SettingsModal";
 import Speedometer, { type SpeedoZone } from "./Speedometer";
 
 const VIX_TICKS = [0, 10, 20, 30, 40, 50];
@@ -88,9 +87,8 @@ function loadTheme(): "light" | "dark" {
 }
 
 export default function Dashboard() {
-  const [thresholds, setThresholds] = useState<Thresholds>(loadThresholds);
+  const [thresholds] = useState<Thresholds>(loadThresholds);
   const [theme, setTheme] = useState<"light" | "dark">(loadTheme);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [payload, setPayload] = useState<SentimentPayload | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
@@ -257,24 +255,6 @@ export default function Dashboard() {
                         <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
                       </svg>
                     )}
-                  </button>
-                  <button
-                    className="icon-btn hero-action-btn"
-                    onClick={() => setSettingsOpen(true)}
-                    title="Paramètres"
-                    aria-label="Ouvrir les paramètres"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <circle cx="12" cy="12" r="3" />
-                      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
-                    </svg>
                   </button>
                 </div>
               </div>
@@ -471,13 +451,6 @@ export default function Dashboard() {
           />
         </div>
       </div>
-
-      <SettingsModal
-        open={settingsOpen}
-        thresholds={thresholds}
-        onChange={setThresholds}
-        onClose={() => setSettingsOpen(false)}
-      />
     </>
   );
 }

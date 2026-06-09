@@ -35,7 +35,7 @@ export interface Thresholds {
 }
 
 export const DEFAULT_THRESHOLDS: Thresholds = {
-  vix: { euphorie: 15, calme: 20, stress: 30 },
-  oas: { euphorie: 2.75, calme: 3.5, stress: 4.5 },
-  fg: { panique: 25, stress: 45, neutre: 56, calme: 76 },
+  vix: { euphorie: 15, calme: 25, stress: 30 },
+  oas: { euphorie: 3, calme: 4, stress: 5 },
+  fg: { panique: 25, stress: 45, neutre: 55, calme: 75 },
 };
