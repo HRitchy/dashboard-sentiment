@@ -10,8 +10,7 @@ export interface SpeedoZone {
 }
 
 interface Props {
-  /** Titre de la jauge. Omis → aucun en-tête de titre n'est rendu. */
-  name?: string;
+  name: string;
   value: number | null;
   range: { min: number; max: number };
   zones: SpeedoZone[];
@@ -90,18 +89,16 @@ export default function Speedometer({
       className={`speedo fade-in${compact ? " speedo-compact" : ""}`}
       style={{ opacity: loading && value == null ? 0.4 : 1 }}
     >
-      {(name || source) && (
-        <div className="speedo-head">
-          {name ? <span className="speedo-name">{name}</span> : null}
-          {source ? <span className="speedo-src">{source}</span> : null}
-        </div>
-      )}
+      <div className="speedo-head">
+        <span className="speedo-name">{name}</span>
+        {source ? <span className="speedo-src">{source}</span> : null}
+      </div>
 
       <div className="speedo-stage">
         <svg
           viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
           role="img"
-          aria-label={name ? `${name} ${displayValue}` : displayValue}
+          aria-label={`${name} ${displayValue}`}
         >
           {/* Track background */}
           <path
