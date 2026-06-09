@@ -25,7 +25,6 @@ import {
   fgSerenity,
   nfciSerenity,
   oasSerenity,
-  SCORE_BANDS,
   vixSerenity,
 } from "@/lib/score";
 import ScoreBar from "./ScoreBar";
@@ -35,15 +34,6 @@ const VIX_TICKS = [0, 10, 20, 30, 40, 50];
 const OAS_TICKS = [2, 4, 6, 8, 10];
 const FG_TICKS = [0, 25, 50, 75, 100];
 const NFCI_TICKS = [-2, -1, 0, 1, 2, 3, 4];
-const SCORE_TICKS = [0, 20, 40, 60, 80, 100];
-
-// Indice composite 0–100 : zones de la jauge dérivées des paliers (source
-// unique SCORE_BANDS), pour rester cohérent avec la barre à paliers.
-const SCORE_ZONES: SpeedoZone[] = SCORE_BANDS.map((b) => ({
-  from: b.from,
-  to: b.to,
-  cls: `seg-${b.state.toLowerCase()}`,
-}));
 
 function nfciValue(v: number): string {
   return (v >= 0 ? "+" : "") + v.toFixed(3);
@@ -198,17 +188,6 @@ export default function Dashboard() {
                 {/* Indice composite 0–100 — jauge à paliers */}
                 <ScoreBar
                   value={composite.value}
-                  state={composite.state}
-                />
-                {/* Même indice composite — version speedometer */}
-                <Speedometer
-                  name="Indice de sérénité"
-                  value={composite.value}
-                  range={{ min: 0, max: 100 }}
-                  ticks={SCORE_TICKS}
-                  zones={SCORE_ZONES}
-                  formatValue={(v) => v.toFixed(0)}
-                  loading={refreshing && !payload}
                   state={composite.state}
                 />
                 <div className="hero-actions" aria-label="Actions principales">

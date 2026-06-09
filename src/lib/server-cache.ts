@@ -19,10 +19,31 @@ export async function cached<T>(
   return value;
 }
 
-export function fetchWithTimeout(
+// Fetch avec timeout + petites relances pour absorber les timeouts/coupures
+// réseau transitoires (FRED et Yahoo répondent parfois lentement).
+export async function fetchWithTimeout(
   url: string,
   init: RequestInit = {},
-  timeoutMs = 6000,
+  timeoutMs = 9000,
+  retries = 2,
 ): Promise<Response> {
-  return fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fetch(url, {
+        ...init,
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+    } catch (err) {
+      lastErr = err;
+      if (attempt < retries) {
+        // Backoff court avant la prochaine tentative.
+        await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+      }
+    }
+  }
+  if (lastErr instanceof DOMException && lastErr.name === "TimeoutError") {
+    throw new Error(`Délai dépassé (${timeoutMs} ms)`);
+  }
+  throw lastErr;
 }
