@@ -210,13 +210,6 @@ export default function Dashboard() {
                   state={composite.state}
                   history={scoreHistory}
                 />
-                <h2
-                  className={`verdict-title ${
-                    conv.state ? `w-${conv.state.toLowerCase()}` : ""
-                  }`}
-                >
-                  {conv.state ? finalSentence : <em>{finalSentence}</em>}
-                </h2>
                 <div className="hero-actions" aria-label="Actions principales">
                   <Link
                     href="/sp500"

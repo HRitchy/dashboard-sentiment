@@ -62,8 +62,6 @@ export default function ScoreBar({ value, state, history }: Props) {
 
   return (
     <div className="score-bar">
-      <span className="hero-score-eyebrow">Indice de sérénité</span>
-
       <div
         className="score-track"
         role="meter"
