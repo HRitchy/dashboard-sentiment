@@ -28,7 +28,6 @@ import {
   SCORE_BANDS,
   vixSerenity,
 } from "@/lib/score";
-import ScoreBar from "./ScoreBar";
 import Speedometer, { type SpeedoZone } from "./Speedometer";
 
 const VIX_TICKS = [0, 10, 20, 30, 40, 50];
@@ -195,12 +194,7 @@ export default function Dashboard() {
           <div className={`verdict-hero ${scoreClass}`}>
             <div className="verdict" key={finalSentence}>
               <div className="fade-in">
-                {/* Indice composite 0–100 — jauge à paliers */}
-                <ScoreBar
-                  value={composite.value}
-                  state={composite.state}
-                />
-                {/* Même indice composite — version speedometer, sans titre */}
+                {/* Indice composite 0–100 — jauge speedometer, sans titre */}
                 <Speedometer
                   value={composite.value}
                   range={{ min: 0, max: 100 }}
