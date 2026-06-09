@@ -445,22 +445,6 @@ body {
 .score-label.is-active {
   font-weight: 700;
 }
-.hero-score-foot {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 16px;
-}
-.hero-score-spark {
-  display: block;
-  overflow: visible;
-}
-.hero-score-spark path {
-  stroke: var(--ink-3);
-}
-.hero-score-spark circle {
-  fill: var(--ink-2);
-}
 .hero-actions {
   display: inline-flex;
   align-items: center;
@@ -978,48 +962,6 @@ body {
 }
 .speedo-err {
   color: var(--c-panique);
-}
-
-/* ---- Trend (sparkline + delta chip) ---- */
-.speedo-trend {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 6px;
-}
-.speedo-compact .speedo-trend {
-  justify-content: center;
-}
-.speedo-spark {
-  display: block;
-  overflow: visible;
-}
-.speedo-spark path {
-  stroke: var(--ink-3);
-}
-.speedo-spark circle {
-  fill: var(--ink-2);
-}
-.trend-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--ink-2);
-  font-feature-settings: "zero", "tnum";
-}
-.trend-arrow {
-  font-size: 8px;
-  line-height: 1;
-  color: var(--ink-3);
-}
-.trend-since {
-  color: var(--ink-3);
-  font-weight: 400;
-  letter-spacing: 0.04em;
 }
 
 @media (max-width: 720px) {

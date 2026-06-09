@@ -18,7 +18,8 @@ import {
   type SentimentState,
   type Thresholds,
 } from "./types";
-import type { History, IndicatorKey } from "./history";
+
+export type IndicatorKey = "vix" | "oas" | "fg" | "nfci";
 
 function clamp(x: number): number {
   return Math.max(0, Math.min(100, x));
@@ -164,32 +165,4 @@ export function compositeScore(
   if (wsum === 0) return { value: null, state: null, parts };
   const value = Math.round(acc / wsum);
   return { value, state: scoreToState(value), parts };
-}
-
-// Reconstruit la série quotidienne de l'indice composite à partir de
-// l'historique des indicateurs, en combinant les valeurs jour par jour. Les
-// seuils courants sont appliqués (la série reflète donc toujours le réglage
-// actuel) — l'indice devient ainsi pleinement historisable.
-export function scoreSeries(history: History, thresholds: Thresholds): number[] {
-  const byDay = new Map<string, Partial<Record<IndicatorKey, number>>>();
-  const keys: IndicatorKey[] = ["vix", "oas", "fg", "nfci"];
-  for (const k of keys) {
-    for (const p of history[k]) {
-      const e = byDay.get(p.d) ?? {};
-      e[k] = p.v;
-      byDay.set(p.d, e);
-    }
-  }
-  const out: number[] = [];
-  for (const day of [...byDay.keys()].sort()) {
-    const e = byDay.get(day)!;
-    const { value } = compositeScore({
-      vix: vixSerenity(e.vix ?? null, thresholds.vix),
-      oas: oasSerenity(e.oas ?? null, thresholds.oas),
-      fg: fgSerenity(e.fg ?? null, thresholds.fg),
-      nfci: nfciSerenity(e.nfci ?? null),
-    });
-    if (value != null) out.push(value);
-  }
-  return out;
 }
