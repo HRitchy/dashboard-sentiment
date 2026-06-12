@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import {
   DEFAULT_THRESHOLDS,
@@ -225,24 +224,6 @@ export default function Dashboard() {
                   </div>
                 )}
                 <div className="hero-actions" aria-label="Actions principales">
-                  <Link
-                    href="/sp500"
-                    className="icon-btn hero-action-btn"
-                    title="MSCI World"
-                    aria-label="Voir le MSCI World"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M3 17l6-6 4 4 8-8" />
-                      <path d="M14 7h7v7" />
-                    </svg>
-                  </Link>
                   <button
                     className="icon-btn hero-action-btn"
                     onClick={() => setTheme(theme === "light" ? "dark" : "light")}
