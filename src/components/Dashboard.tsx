@@ -17,8 +17,6 @@ import {
   classifyHyOas,
   classifyNfci,
   classifyVix,
-  convergence,
-  STATE_SENTENCES,
 } from "@/lib/classify";
 import {
   compositeScore,
@@ -60,16 +58,34 @@ function formatTime(d: Date): string {
 const STORAGE_KEY = "dashboard-thresholds";
 const THEME_KEY = "dashboard-theme";
 
+// Seuils valides = nombres finis strictement croissants à l'intérieur de la
+// plage de l'indicateur, sans quoi l'interpolation de score.ts n'est plus
+// monotone et produit des valeurs aberrantes.
+function isOrdered(...xs: number[]): boolean {
+  return xs.every(
+    (x, i) => Number.isFinite(x) && (i === 0 || xs[i - 1] < x),
+  );
+}
+
 function loadThresholds(): Thresholds {
   if (typeof window === "undefined") return DEFAULT_THRESHOLDS;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_THRESHOLDS;
     const parsed = JSON.parse(raw) as Partial<Thresholds>;
+    const vix = { ...DEFAULT_THRESHOLDS.vix, ...(parsed.vix ?? {}) };
+    const oas = { ...DEFAULT_THRESHOLDS.oas, ...(parsed.oas ?? {}) };
+    const fg = { ...DEFAULT_THRESHOLDS.fg, ...(parsed.fg ?? {}) };
     return {
-      vix: { ...DEFAULT_THRESHOLDS.vix, ...(parsed.vix ?? {}) },
-      oas: { ...DEFAULT_THRESHOLDS.oas, ...(parsed.oas ?? {}) },
-      fg: { ...DEFAULT_THRESHOLDS.fg, ...(parsed.fg ?? {}) },
+      vix: isOrdered(VIX_RANGE.min, vix.euphorie, vix.calme, vix.stress, VIX_RANGE.max)
+        ? vix
+        : DEFAULT_THRESHOLDS.vix,
+      oas: isOrdered(OAS_RANGE.min, oas.euphorie, oas.calme, oas.stress, OAS_RANGE.max)
+        ? oas
+        : DEFAULT_THRESHOLDS.oas,
+      fg: isOrdered(FG_RANGE.min, fg.panique, fg.stress, fg.neutre, fg.calme, FG_RANGE.max)
+        ? fg
+        : DEFAULT_THRESHOLDS.fg,
     };
   } catch {
     return DEFAULT_THRESHOLDS;
@@ -154,11 +170,6 @@ export default function Dashboard() {
   const fgState = classifyFg(fg?.value ?? null, thresholds.fg);
   const nfciState = classifyNfci(nfci?.value ?? null);
 
-  const conv = convergence([vixState, oasState, fgState]);
-  const finalSentence = conv.state
-    ? STATE_SENTENCES[conv.state]
-    : "État indéterminé.";
-
   // Indice composite 0–100 pondérant les 4 indicateurs.
   const composite = compositeScore({
     vix: vixSerenity(vix?.value ?? null, thresholds.vix),
@@ -169,6 +180,10 @@ export default function Dashboard() {
   const scoreClass = composite.state
     ? `panel-${composite.state.toLowerCase()}`
     : "panel-neutre";
+
+  // Complétude du score : nombre d'indicateurs réellement pris en compte.
+  const partsAvailable = composite.parts.filter((p) => p.serenity != null).length;
+  const partsTotal = composite.parts.length;
 
   // Build a single error banner summarising individual reading failures.
   const errors = [
@@ -192,7 +207,7 @@ export default function Dashboard() {
         <div>
           {/* Global verdict — hero */}
           <div className={`verdict-hero ${scoreClass}`}>
-            <div className="verdict" key={finalSentence}>
+            <div className="verdict" key={composite.state ?? "indetermine"}>
               <div className="fade-in">
                 {/* Indice composite 0–100 — jauge speedometer, sans titre */}
                 <Speedometer
@@ -204,6 +219,11 @@ export default function Dashboard() {
                   loading={refreshing && !payload}
                   state={composite.state}
                 />
+                {composite.value != null && partsAvailable < partsTotal && (
+                  <div className="hero-partial">
+                    Score partiel — {partsAvailable}/{partsTotal} indicateurs
+                  </div>
+                )}
                 <div className="hero-actions" aria-label="Actions principales">
                   <Link
                     href="/sp500"

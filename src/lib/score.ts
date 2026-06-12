@@ -3,11 +3,15 @@
 //
 // Chaque indicateur est d'abord ramené à un sous-score de « sérénité » sur
 // 0–100, où 100 = euphorie (marché serein) et 0 = panique. La conversion est
-// une interpolation linéaire par morceaux entre les seuils de classification,
-// si bien que le score reste cohérent avec le verdict catégoriel et suit
-// automatiquement les seuils réglés par l'utilisateur. Fear & Greed est déjà
-// orienté « haut = serein » ; les trois autres sont inversés (une valeur
-// élevée signale du stress).
+// une interpolation linéaire par morceaux dont les ancrages placent chaque
+// seuil de classification exactement sur une borne de palier composite
+// (SCORE_BANDS) : un indicateur pile sur un seuil tombe dans le même état que
+// son verdict catégoriel, et le sous-score suit automatiquement les seuils
+// réglés par l'utilisateur. Les indicateurs à 4 catégories n'ont pas
+// d'équivalent pour l'un des 5 paliers composites ; ce palier orphelin est
+// traversé linéairement entre les deux seuils qui l'encadrent (voir les
+// commentaires des fonctions). Fear & Greed est déjà orienté « haut = serein » ;
+// les trois autres sont inversés (une valeur élevée signale du stress).
 
 import {
   FG_RANGE,
@@ -41,22 +45,23 @@ function piecewise(v: number, pts: readonly (readonly [number, number])[]): numb
   return last[1];
 }
 
-// VIX / HY OAS / NFCI : 3 seuils → 4 bandes, valeur élevée = panique.
-// Ancrages de sérénité : min→100, b1→75, b2→50, b3→25, max→0.
-function fourBandSerenity(
+// VIX / HY OAS : 4 catégories EUPHORIE/CALME/STRESS/PANIQUE (pas de NEUTRE),
+// valeur élevée = panique. Ancrages sur les bornes des paliers composites :
+// min→100, euphorie→80, calme→60, stress→20, max→0. Le palier NEUTRE (40–60),
+// orphelin, est traversé linéairement entre les seuils calme et stress : une
+// valeur à peine au-dessus du seuil calme lit NEUTRE avant STRESS.
+function stressSerenity(
   v: number,
   min: number,
-  b1: number,
-  b2: number,
-  b3: number,
+  t: { euphorie: number; calme: number; stress: number },
   max: number,
 ): number {
   return clamp(
     piecewise(v, [
       [min, 100],
-      [b1, 75],
-      [b2, 50],
-      [b3, 25],
+      [t.euphorie, 80],
+      [t.calme, 60],
+      [t.stress, 20],
       [max, 0],
     ]),
   );
@@ -64,23 +69,28 @@ function fourBandSerenity(
 
 export function vixSerenity(v: number | null, t: Thresholds["vix"]): number | null {
   if (v == null) return null;
-  return fourBandSerenity(v, VIX_RANGE.min, t.euphorie, t.calme, t.stress, VIX_RANGE.max);
+  return stressSerenity(v, VIX_RANGE.min, t, VIX_RANGE.max);
 }
 
 export function oasSerenity(v: number | null, t: Thresholds["oas"]): number | null {
   if (v == null) return null;
-  return fourBandSerenity(v, OAS_RANGE.min, t.euphorie, t.calme, t.stress, OAS_RANGE.max);
+  return stressSerenity(v, OAS_RANGE.min, t, OAS_RANGE.max);
 }
 
+// NFCI : 4 catégories EUPHORIE/NEUTRE/STRESS/PANIQUE (pas de CALME).
+// Ancrages : min→100, calme→80, normal→40, stress→20, max→0. Le palier CALME
+// (60–80), orphelin, est traversé linéairement entre les seuils calme et
+// normal.
 export function nfciSerenity(v: number | null): number | null {
   if (v == null) return null;
-  return fourBandSerenity(
-    v,
-    NFCI_RANGE.min,
-    NFCI_THRESHOLDS.calme,
-    NFCI_THRESHOLDS.normal,
-    NFCI_THRESHOLDS.stress,
-    NFCI_RANGE.max,
+  return clamp(
+    piecewise(v, [
+      [NFCI_RANGE.min, 100],
+      [NFCI_THRESHOLDS.calme, 80],
+      [NFCI_THRESHOLDS.normal, 40],
+      [NFCI_THRESHOLDS.stress, 20],
+      [NFCI_RANGE.max, 0],
+    ]),
   );
 }
 
@@ -100,11 +110,14 @@ export function fgSerenity(v: number | null, t: Thresholds["fg"]): number | null
   );
 }
 
-// Poids relatifs des indicateurs dans l'indice composite (par défaut égaux).
+// Poids relatifs des indicateurs dans l'indice composite. Le Fear & Greed de
+// CNN compte pour moitié : deux de ses sept composantes (volatilité ≈ VIX,
+// demande d'obligations high yield ≈ HY OAS) recoupent des indicateurs déjà
+// présents — un poids plein compterait ces axes deux fois.
 export const SCORE_WEIGHTS: Record<IndicatorKey, number> = {
   vix: 1,
   oas: 1,
-  fg: 1,
+  fg: 0.5,
   nfci: 1,
 };
 

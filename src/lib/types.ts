@@ -15,10 +15,12 @@ export interface SentimentPayload {
   fetchedAt: string;
 }
 
+// Le NFCI est un z-score (0 = moyenne historique, écart-type 1) ; une valeur
+// positive signale des conditions plus tendues que la moyenne historique.
 export const NFCI_THRESHOLDS = {
-  calme: -0.5, // < -0.5 → Calme
-  normal: 0,   // -0.5 ≤ x < 0 → Normal
-  stress: 0.5, // 0 ≤ x < 0.5 → Stress ; x ≥ 0.5 → Crise
+  calme: -0.5, // x ≤ -0.5 → Euphorie (conditions très détendues)
+  normal: 0,   // -0.5 < x ≤ 0 → Neutre (autour de la moyenne historique)
+  stress: 0.5, // 0 < x ≤ 0.5 → Stress ; x > 0.5 → Panique
 } as const;
 
 export const NFCI_RANGE = { min: -2, max: 4 } as const;
