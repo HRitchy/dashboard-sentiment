@@ -25,4 +25,4 @@ npm run build
 
 ## Configuration
 
-Copiez `.env.example` vers `.env.local` et renseignez votre clé FRED (requise pour les indicateurs HY OAS et NFCI).
+Copiez `.env.example` vers `.env.local` si vous souhaitez renseigner une clé FRED optionnelle.
