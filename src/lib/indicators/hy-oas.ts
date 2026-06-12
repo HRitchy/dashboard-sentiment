@@ -3,18 +3,22 @@ import { cached, fetchWithTimeout } from "@/lib/server-cache";
 
 // FRED — ICE BofA US High Yield Index Option-Adjusted Spread (daily).
 // Fetch a bit more than 1 point so we can skip FRED's "." placeholder values.
-const FRED_URL =
-  "https://api.stlouisfed.org/fred/series/observations" +
-  "?series_id=BAMLH0A0HYM2" +
-  "&api_key=" +
-  (process.env.FRED_API_KEY ?? "fb4ed430c2d9b95fa12563b9f0550421") +
-  "&file_type=json&sort_order=desc&limit=10";
+function buildFredUrl(): string {
+  const key = process.env.FRED_API_KEY;
+  if (!key) throw new Error("FRED_API_KEY manquante (voir .env.example)");
+  return (
+    "https://api.stlouisfed.org/fred/series/observations" +
+    "?series_id=BAMLH0A0HYM2" +
+    `&api_key=${key}` +
+    "&file_type=json&sort_order=desc&limit=10"
+  );
+}
 
 const TTL_MS = 30 * 60_000;
 const SOURCE = "FRED · BAMLH0A0HYM2";
 
 async function loadHyOas(): Promise<IndicatorReading> {
-  const res = await fetchWithTimeout(FRED_URL, { cache: "no-store" });
+  const res = await fetchWithTimeout(buildFredUrl(), { cache: "no-store" });
   if (!res.ok) throw new Error(`FRED HTTP ${res.status}`);
 
   const data = (await res.json()) as {

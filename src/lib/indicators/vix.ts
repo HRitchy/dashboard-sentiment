@@ -27,7 +27,7 @@ async function loadVix(): Promise<IndicatorReading> {
       result?: Array<{
         timestamp?: number[];
         indicators?: { quote?: Array<{ close?: (number | null)[] }> };
-        meta?: { regularMarketPrice?: number };
+        meta?: { regularMarketPrice?: number; regularMarketTime?: number };
       }>;
       error?: { description?: string } | null;
     };
@@ -43,13 +43,20 @@ async function loadVix(): Promise<IndicatorReading> {
 
   // Prefer the live regularMarketPrice for the latest value when markets open.
   const live = result.meta?.regularMarketPrice;
+  const liveTime = result.meta?.regularMarketTime;
   const last =
     typeof live === "number" ? live : (closes[closes.length - 1] ?? null);
 
+  // asOf must describe the value actually returned: the live quote time when
+  // the live price is used, the last candle otherwise.
   const asOf =
-    timestamps.length > 0
-      ? new Date(timestamps[timestamps.length - 1] * 1000).toISOString()
-      : new Date().toISOString();
+    typeof live === "number"
+      ? new Date(
+          typeof liveTime === "number" ? liveTime * 1000 : Date.now(),
+        ).toISOString()
+      : timestamps.length > 0
+        ? new Date(timestamps[timestamps.length - 1] * 1000).toISOString()
+        : new Date().toISOString();
 
   return {
     value: last,
